@@ -36,7 +36,7 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
 .stat .s{font-size:.62rem;color:var(--dim);line-height:1;margin-top:2px;font-weight:600}
 #starRow{display:flex;gap:1px;font-size:.9rem;line-height:1}
 .spacer{flex:1;min-width:0}
-#menuBtn{pointer-events:auto;background:rgba(22,34,27,.82);border:2px solid var(--line);
+#muteBtn,#menuBtn{pointer-events:auto;background:rgba(22,34,27,.82);border:2px solid var(--line);
   border-radius:12px;width:42px;height:42px;font-size:1.2rem;box-shadow:var(--sh);
   backdrop-filter:blur(6px)}
 
@@ -173,6 +173,17 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
 .spin{width:34px;height:34px;border:4px solid #2f4a3b;border-top-color:var(--gold);
   border-radius:50%;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+#questBar{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6;
+  display:flex;align-items:center;gap:8px;background:rgba(22,34,27,.85);border:2px solid var(--line);
+  border-radius:14px;padding:6px 12px;max-width:min(92vw,420px);pointer-events:none;
+  box-shadow:0 4px 0 rgba(0,0,0,.25)}
+#questBar #qIc{font-size:1.2rem}
+#questBar .qmid{display:flex;flex-direction:column;gap:3px;min-width:150px}
+#questBar #qTxt{font-size:.78rem;font-weight:800;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:250px}
+#questBar #qBarOut{height:7px;background:rgba(0,0,0,.4);border-radius:4px;overflow:hidden}
+#questBar #qBarIn{height:100%;width:0%;background:linear-gradient(90deg,var(--leaf),var(--gold));border-radius:4px;transition:width .3s}
+#questBar #qReward{font-size:.75rem;font-weight:800;color:var(--gold);white-space:nowrap}
+#questBar.qdone{border-color:var(--gold)}
 @keyframes glowp{0%,100%{box-shadow:0 4px 0 rgba(0,0,0,.3),0 0 0 0 rgba(255,207,107,.5)}50%{box-shadow:0 4px 0 rgba(0,0,0,.3),0 0 16px 4px rgba(255,207,107,.45)}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.05s!important}}
 </style>
@@ -193,7 +204,15 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
     </button>
   </div>
   <div class="spacer"></div>
+  <button id="muteBtn" aria-label="Sound">🔊</button>
   <button id="menuBtn" aria-label="Menu">☰</button>
+</div>
+
+<!-- Quest / goal bar -->
+<div id="questBar" class="hidden">
+  <span id="qIc">🎯</span>
+  <div class="qmid"><div id="qTxt">Goal</div><div id="qBarOut"><div id="qBarIn"></div></div></div>
+  <span id="qReward">🪙25</span>
 </div>
 
 <!-- Prompt -->
@@ -244,7 +263,7 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
 <div class="modalbg" id="introModal">
   <div class="modal">
     <h2>🌲 Welcome to Pinehollow</h2>
-    <p>You've got a patch of wilderness, a lake, and a dream: turn a single tent into a five-star resort. Gather and sell resources, fish, forage, raise animals — everything pays in coins, and coins build your empire. Reach ★★★★★ and you can <b style="color:var(--gold)">sell the whole resort</b> for a permanent income boost and start again in a brand-new land: desert dunes, a tropical cove, frozen peaks…</p>
+    <p>You've got a patch of wilderness, a lake, and a dream: turn a single tent into a five-star resort. Gather resources to BUILD with and to sell — balancing the two is the game. Follow the 🎯 goals at the top for guidance and rewards. Reach ★★★★★ and you can <b style="color:var(--gold)">sell the whole resort</b> for a permanent income boost and start again in a brand-new land: desert dunes, a tropical cove, frozen peaks…</p>
     <div class="ctrls">
       <span class="k">Move</span><span>WASD / arrows / the left stick</span>
       <span class="k">Look</span><span>Drag the screen to rotate the camera</span>
@@ -656,7 +675,7 @@ const BUILDERS={
 };
 const ANIMAL_BUILDERS={chicken:makeChicken,sheep:makeSheep,cow:makeCow};
 
-/* == 2A2: biome assets == */
+/* == 2A2 == */
 "use strict";
 /* ==================== biome trees ==================== */
 function makeCactus(){const g=grp();
@@ -751,24 +770,166 @@ function makeSkiLift(){const g=grp();
   return g;}
 Object.assign(BUILDERS,{sauna:makeSauna,oasis:makeOasisBar,tiki:makeTikiBar,skilift:makeSkiLift});
 
-/* ==================== tier trim ==================== */
-const TIER_FLAG=[null,0xD4DCE2,0xFFCF6B,0xFF5C6E];
+/* ==================== tier styling ==================== */
+/* Tier looks:
+   0  base       — rustic original
+   1  ◆ Premium  — renovated: royal-blue roofs, warm lanterns, hedges, silver flag
+   2  ◆◆ Lux     — white & gold: cream walls, gold roofs, marble plinth, red carpet,
+                   stanchions, topiary, gold flag
+   3  ◆◆◆ Mega   — palace: pearl walls, radiant gold roofs, GLOWING windows,
+                   fountain, light beams, orbiting sparkles, crown star          */
+const TIER_SCALE=[1,1.10,1.22,1.36];
+const _bmat={};
+function BMAT(color,o){const k=color+"|"+(o?JSON.stringify(o):"");
+  if(_bmat[k])return _bmat[k];
+  const m=new THREE.MeshBasicMaterial(Object.assign({color:color},o||{}));
+  _bmat[k]=m;return m;}
+
+const ROOF_T=[null,0x3E7CC0,0xE2B33C,0xFFC93C];               // blue / gold / radiant gold
+const WALL_SRC=[0xA9723F,0xB9803F,0xB98A54,0xC98A4B,0xC0463A,0x9A6B42];
+const WALL_T=[null,null,0xF5EBDA,0xFBF6EC];                    // cream / pearl
+const TRIM_SRC=[0x8A5E3A,0x7A5230];                            // fences, posts, chimneys
+const TRIM_T=[null,null,0xF2EEE6,0xF7F3EA];
+const WIN_SRC=[0x9AD6FF,0xFFE9A8,0xFFB86B];
+function isRoof(o){
+  if(o.geometry===GEO.cone4&&o.scale.x>=1.1)return true;                    // pitched cone roofs
+  if(o.geometry===GEO.box&&Math.abs(o.rotation.z)>0.25&&o.scale.x>2.4)return true; // slanted slab roofs
+  if(o.material&&o.material.color&&o.material.color.getHex()===0xB04E3A)return true;
+  return false;
+}
+function restyle(g,tier){
+  g.traverse(o=>{
+    if(!o.isMesh||!o.material||!o.material.color)return;
+    if(o.material.transparent)return;               // keep water/steam untouched
+    const c=o.material.color.getHex();
+    if(isRoof(o)){o.material=MAT(ROOF_T[tier]);return;}
+    if(tier>=2&&WALL_SRC.includes(c)){o.material=MAT(WALL_T[tier]);return;}
+    if(tier>=2&&TRIM_SRC.includes(c)){o.material=MAT(TRIM_T[tier]);return;}
+    if(tier>=3&&WIN_SRC.includes(c)){o.material=BMAT(0xFFF3B8);return;}     // windows glow
+  });
+}
+function lanternPost(){const l=grp();
+  l.add(at(cyl(0.05,1.15,0x39424E),0,0.57,0));
+  l.add(at(box(0.2,0.24,0.2,0x39424E),0,1.2,0));
+  const glow=sph(0.1,0xFFD98A);glow.material=BMAT(0xFFD98A);glow.position.y=1.2;
+  glow.userData.bs=0.1;l.add(glow);l.userData.glow=glow;
+  return l;}
+function hedge(sc){const h=sph(0.42*sc,0x3E8A4E,true);h.position.y=0.32*sc;
+  const w=grp();w.add(h);w.add(at(sph(0.3*sc,0x47A05C,true),0.22*sc,0.42*sc,0.1));return w;}
+function topiary(){const tp=grp();
+  tp.add(at(cyl(0.22,0.3,0xB0623C),0,0.15,0));                 // terracotta pot
+  tp.add(at(cyl(0.05,0.5,0x5A3A22),0,0.5,0));
+  tp.add(at(sph(0.3,0x2F8A4C),0,0.85,0));
+  tp.add(at(sph(0.2,0x3AA55C),0,1.15,0));
+  return tp;}
+function stanchion(){const st=grp();
+  st.add(at(cyl(0.04,0.75,0xE2B33C),0,0.37,0));
+  st.add(at(sph(0.08,0xFFCF6B),0,0.78,0));
+  st.add(at(cyl(0.16,0.05,0xE2B33C),0,0.03,0));
+  return st;}
+function fountain(){const f=grp();
+  f.add(at(cyl(0.75,0.28,0xE8E2D6),0,0.14,0));                 // basin
+  const w=at(cyl(0.62,0.16,0x59C6E8,{transparent:true,opacity:0.9}),0,0.3,0);f.add(w);
+  f.add(at(cyl(0.1,0.7,0xE8E2D6),0,0.5,0));
+  f.add(at(cyl(0.3,0.08,0xE8E2D6),0,0.86,0));
+  const ball=sph(0.13,0xBFE9F5);ball.material=BMAT(0xBFE9F5);ball.position.y=1.05;
+  f.add(ball);f.userData.fball=ball;
+  return f;}
+function lightBeam(){const b=mk(GEO.cone,0xFFF2C0);
+  b.material=BMAT(0xFFF2C0,{transparent:true,opacity:0.16,depthWrite:false});
+  b.scale.set(0.55,4.6,0.55);b.rotation.x=Math.PI;b.position.y=2.5;
+  b.castShadow=false;b.receiveShadow=false;return b;}
+
+const TIER_FLAG=[null,0xD4DCE2,0xFFCF6B,0xE0453F];
 function addTierTrim(g,tier,r){
   if(!tier)return g;
-  g.scale.multiplyScalar(1+tier*0.085);
-  const px=r*0.62,pz=r*0.62;
-  g.add(at(cyl(0.045,1.7,0x8A8078),px,0.85,pz));
+  const s=TIER_SCALE[tier];
+  const r0=r/s;                       // base footprint before scaling
+  restyle(g,tier);
+  const ud=g.userData;
+  // ---- flag (all tiers) ----
+  const px=r0*0.62,pz=r0*0.62;
+  g.add(at(cyl(0.045/s,1.7,0x8A8078),px,0.85,pz));
   const f=box(0.6,0.32,0.04,TIER_FLAG[tier]);
-  f.position.set(px+0.32,1.5,pz);g.add(f);g.userData.flag=f;
-  if(tier>=2){ // gold base trim
-    const ring=mk(GEO.cyl,0xFFCF6B);ring.scale.set(r*0.92,0.08,r*0.92);ring.position.y=0.05;
-    ring.castShadow=false;g.add(ring);}
-  if(tier>=3){ // floating star
-    const st=sph(0.2,0xFFD86B);st.position.set(0,r*1.9+1.2,0);g.add(st);g.userData.tstar=st;}
+  f.position.set(px+0.3,1.5,pz);g.add(f);ud.flag=f;
+  if(tier>=3){const gem=sph(0.09,0xFFCF6B);gem.material=BMAT(0xFFCF6B);
+    gem.position.set(px,1.78,pz);g.add(gem);}
+  // ---- tier 1: renovation ----
+  const lans=[];
+  const addLan=(x,z)=>{const l=lanternPost();l.position.set(x,0,z);g.add(l);lans.push(l.userData.glow);};
+  addLan(-r0*0.72,r0*0.85);addLan(r0*0.72,r0*0.85);
+  if(tier===1){
+    const h1=hedge(1);h1.position.set(-r0*0.95,0,r0*0.35);g.add(h1);
+    const h2=hedge(0.85);h2.position.set(r0*0.95,0,r0*0.35);g.add(h2);
+  }
+  // ---- tier 2+: white & gold ----
+  if(tier>=2){
+    addLan(-r0*0.72,-r0*0.7);addLan(r0*0.72,-r0*0.7);
+    // marble plinth + gold ring
+    const plinth=cyl(r0*1.02,0.09,tier===2?0xEFE9DC:0xF9F5EC);plinth.position.y=0.045;
+    plinth.receiveShadow=true;g.add(plinth);
+    const ring=cyl(r0*1.06,0.05,0xE2B33C);ring.position.y=0.025;ring.castShadow=false;g.add(ring);
+    // red carpet + stanchions
+    g.add(at(box(0.85,0.05,r0*0.85,0x9E2B33),0,0.1,r0*0.72));
+    const s1=stanchion();s1.position.set(-0.62,0.06,r0*1.02);g.add(s1);
+    const s2=stanchion();s2.position.set(0.62,0.06,r0*1.02);g.add(s2);
+    const t1=topiary();t1.position.set(-r0*0.98,0,r0*0.02);g.add(t1);
+    const t2=topiary();t2.position.set(r0*0.98,0,r0*0.02);g.add(t2);
+  }
+  // ---- tier 3: palace ----
+  if(tier>=3){
+    const fo=fountain();fo.position.set(r0*0.95,0,r0*0.78);g.add(fo);ud.fball=fo.userData.fball;
+    const b1=lightBeam();b1.position.set(-r0*0.6,2.4,-r0*0.45);b1.rotation.z=0.22;g.add(b1);
+    const b2=lightBeam();b2.position.set(r0*0.6,2.4,-r0*0.45);b2.rotation.z=-0.22;g.add(b2);
+    ud.beams=[b1,b2];
+    const sy=r0*1.9+1.3;
+    const st=sph(0.22,0xFFD86B);st.material=BMAT(0xFFD86B);st.position.set(0,sy,0);
+    g.add(st);ud.tstar=st;
+    const sparks=[];
+    for(let i=0;i<3;i++){const sp=sph(0.07,0xFFE9A8);sp.material=BMAT(0xFFE9A8);
+      sp.userData.ph=i*2.1;sp.userData.ry=sy;g.add(sp);sparks.push(sp);}
+    ud.sparkles=sparks;
+  }
+  ud.lanterns=lans;
+  g.scale.multiplyScalar(s);
   return g;
 }
 
-/* == 2B: game logic == */
+/* ==================== fun-feature builders ==================== */
+function makeDog(){const g=grp();
+  const body=at(box(0.55,0.3,0.3,0xC9955C),0,0.32,0);g.add(body);
+  g.add(at(box(0.26,0.26,0.24,0xC9955C),0.36,0.44,0)); // head
+  g.add(at(box(0.1,0.08,0.05,0x3A2E28),0.5,0.42,0));   // snout
+  g.add(at(box(0.07,0.12,0.03,0x8A5E3A),0.32,0.6,0.09)); // ears
+  g.add(at(box(0.07,0.12,0.03,0x8A5E3A),0.32,0.6,-0.09));
+  for(const x of[-0.18,0.18])for(const z of[-0.1,0.1])g.add(at(box(0.08,0.18,0.08,0xB9803F),x,0.1,z));
+  const tail=at(box(0.06,0.2,0.06,0xC9955C),-0.3,0.45,0);tail.rotation.z=0.7;g.add(tail);
+  g.userData.tail=tail;
+  g.add(at(box(0.16,0.05,0.16,0xE0453F),0.36,0.32,0)); // collar
+  return g;}
+function makeChest(){const g=grp();
+  g.add(at(box(0.9,0.5,0.6,0x8A5E3A),0,0.27,0));
+  const lid=grp();lid.position.set(0,0.52,-0.3);
+  lid.add(at(box(0.9,0.22,0.6,0x9A6B42),0,0.11,0.3));
+  lid.add(at(box(0.92,0.06,0.62,0xE2B33C),0,0.02,0.3));
+  g.add(lid);g.userData.lid=lid;
+  g.add(at(box(0.94,0.08,0.64,0xE2B33C),0,0.1,0));
+  g.add(at(box(0.14,0.2,0.05,0xFFCF6B),0,0.42,0.31)); // clasp
+  const glow=sph(0.12,0xFFE9A8);glow.material=BMAT(0xFFE9A8);glow.position.y=0.85;
+  glow.userData.bs=0.12;g.add(glow);g.userData.glow=glow;
+  return g;}
+function makeGoldBird(){const g=grp();
+  const b=sph(0.28,0xFFC93C);b.material=BMAT(0xFFC93C);b.scale.set(0.4,0.28,0.28);g.add(b);
+  const h=sph(0.15,0xFFD86B);h.material=BMAT(0xFFD86B);h.position.set(0.34,0.12,0);g.add(h);
+  g.add(at(cone(0.06,0.14,0xE0653F,true),0.5,0.1,0));
+  const w1=box(0.36,0.04,0.5,0xFFE9A8);w1.material=BMAT(0xFFE9A8);w1.position.set(-0.02,0.08,0.22);g.add(w1);
+  const w2=w1.clone();w2.position.z=-0.22;g.add(w2);
+  g.userData.wings=[w1,w2];
+  const tr=sph(0.1,0xFFF3B8);tr.material=BMAT(0xFFF3B8,{transparent:true,opacity:0.5});
+  tr.position.set(-0.35,0,0);g.add(tr);
+  return g;}
+
+/* == 2B == */
 "use strict";
 /* ==================== biomes ==================== */
 const BIOMES=[
@@ -789,72 +950,74 @@ const BIOMES=[
 /* ==================== catalog: lines × 4 tiers ==================== */
 const LINES=[
  // ---- stays ----
- {id:"tent",tab:"stay",ic:"⛺",builder:"tent",r:1.7,beds:1,c:10,inc:0.5,star:1,
+ {id:"tent",w:5,tab:"stay",ic:"⛺",builder:"tent",r:1.7,beds:1,c:10,inc:0.5,star:1,
   names:["Campsite Tent","Glamping Tent","Safari Tent","Royal Pavilion"],
   desc:"Canvas comfort under the stars."},
- {id:"cabin",tab:"stay",ic:"🛖",builder:"cabin",r:1.9,beds:2,c:150,inc:5,star:2,
+ {id:"cabin",w:25,tab:"stay",ic:"🛖",builder:"cabin",r:1.9,beds:2,c:150,inc:5,star:2,
   names:["Log Cabin","Deluxe Cabin","Chalet","Grand Chalet"],
   desc:"Honest timber, cozy nights."},
- {id:"cottage",tab:"stay",ic:"🏡",builder:"cottage",r:2.1,beds:3,c:900,inc:22,star:3,
+ {id:"cottage",w:80,tab:"stay",ic:"🏡",builder:"cottage",r:2.1,beds:3,c:900,inc:22,star:3,
   names:["Cottage","Garden Villa","Manor","Lakeview Palace"],
   desc:"Whitewashed walls, happy guests."},
- {id:"treehouse",tab:"stay",ic:"🌳",builder:"treehouse",r:2.0,beds:4,c:4500,inc:85,star:5,
+ {id:"treehouse",w:220,tab:"stay",ic:"🌳",builder:"treehouse",r:2.0,beds:4,c:4500,inc:85,star:5,
   names:["Treehouse","Canopy Suite","Skyhouse","Cloud Loft"],
   desc:"Rooms with a view. And squirrels."},
- {id:"lodge",tab:"stay",ic:"🏕️",builder:"lodge",r:2.8,beds:6,c:22000,inc:350,star:8,
+ {id:"lodge",w:600,tab:"stay",ic:"🏕️",builder:"lodge",r:2.8,beds:6,c:22000,inc:350,star:8,
   names:["Lakeside Lodge","Grand Lodge","Summit Lodge","Imperial Lodge"],
   desc:"Fireplace included, marshmallows extra."},
- {id:"hotel",tab:"stay",ic:"🏨",builder:"hotel",r:3.2,beds:12,c:110000,inc:1500,star:13,
+ {id:"hotel",w:1600,tab:"stay",ic:"🏨",builder:"hotel",r:3.2,beds:12,c:110000,inc:1500,star:13,
   names:["Pine Hotel","Resort Tower","Five-Star Tower","WonderResort"],
   desc:"All the stars, visible at night."},
  // ---- amenities ----
- {id:"campfire",tab:"amenity",ic:"🔥",builder:"campfire",r:1.3,c:40,inc:1.2,star:1,
+ {id:"campfire",w:8,tab:"amenity",ic:"🔥",builder:"campfire",r:1.3,c:40,inc:1.2,star:1,
   names:["Campfire","Fire Pit","Bonfire Circle","Festival Blaze"],
   desc:"Guests gather round. Morale up."},
- {id:"garden",tab:"amenity",ic:"🌷",builder:"garden",r:1.7,c:300,inc:7,star:2,
+ {id:"garden",w:40,tab:"amenity",ic:"🌷",builder:"garden",r:1.7,c:300,inc:7,star:2,
   names:["Flower Garden","Botanical Garden","Zen Garden","Wonder Garden"],
   desc:"Every garden adds +2% to ALL income."},
- {id:"cafe",tab:"amenity",ic:"☕",builder:"cafe",r:2.3,c:2500,inc:80,star:4,
+ {id:"cafe",w:180,tab:"amenity",ic:"☕",builder:"cafe",r:2.3,c:2500,inc:80,star:4,
   names:["Forest Café","Restaurant","Fine Dining","Skyline Dining"],
   desc:"Pinecone lattes. Guests spend more."},
- {id:"pool",tab:"amenity",ic:"🏊",builder:"pool",r:3.6,c:9000,inc:260,star:6,
+ {id:"pool",w:450,tab:"amenity",ic:"🏊",builder:"pool",r:3.6,c:9000,inc:260,star:6,
   names:["Swimming Pool","Infinity Pool","Lagoon Pool","Water Park"],
   desc:"Splashy centerpiece with umbrellas."},
- {id:"spring",tab:"amenity",ic:"♨️",builder:"spring",r:3.2,c:45000,inc:1000,star:9,
+ {id:"spring",w:1200,tab:"amenity",ic:"♨️",builder:"spring",r:3.2,c:45000,inc:1000,star:9,
   names:["Hot Spring","Mineral Spring","Crystal Spring","Emerald Springs"],
   desc:"Steam rises, so does revenue."},
  // ---- biome exclusives ----
- {id:"sauna",tab:"amenity",ic:"🧖",builder:"sauna",r:2.2,c:1200,inc:45,star:3,biome:0,
+ {id:"sauna",w:150,tab:"amenity",ic:"🧖",builder:"sauna",r:2.2,c:1200,inc:45,star:3,biome:0,
   names:["Sauna","Premium Sauna","Lux Sauna","Mega Sauna"],
   desc:"Forest specialty — hot cedar and cold plunges."},
- {id:"oasis",tab:"amenity",ic:"🍹",builder:"oasis",r:2.2,c:1200,inc:45,star:3,biome:1,
+ {id:"oasis",w:150,tab:"amenity",ic:"🍹",builder:"oasis",r:2.2,c:1200,inc:45,star:3,biome:1,
   names:["Oasis Bar","Shaded Oasis Bar","Mirage Lounge","Grand Mirage"],
   desc:"Desert specialty — cold drinks, palm shade."},
- {id:"tiki",tab:"amenity",ic:"🗿",builder:"tiki",r:2.2,c:1200,inc:45,star:3,biome:2,
+ {id:"tiki",w:150,tab:"amenity",ic:"🗿",builder:"tiki",r:2.2,c:1200,inc:45,star:3,biome:2,
   names:["Tiki Bar","Beach Club","Surf Lounge","Paradise Club"],
   desc:"Cove specialty — torches and tropical drinks."},
- {id:"skilift",tab:"amenity",ic:"🚡",builder:"skilift",r:2.4,c:1200,inc:45,star:3,biome:3,
+ {id:"skilift",w:150,tab:"amenity",ic:"🚡",builder:"skilift",r:2.4,c:1200,inc:45,star:3,biome:3,
   names:["Ski Lift","Twin Lift","Gondola","Summit Express"],
   desc:"Frostpeak specialty — up the powder we go."},
  // ---- animal housing (3 tiers) ----
- {id:"coop",tab:"animal",ic:"🛖",builder:"coop",r:1.7,c:200,inc:0,star:1,animal:"chicken",caps:[4,9,16],tiers:3,
+ {id:"coop",w:30,tab:"animal",ic:"🛖",builder:"coop",r:1.7,c:200,inc:0,star:1,animal:"chicken",caps:[4,9,16],tiers:3,
   names:["Chicken Coop","Grand Coop","Cluckingham Palace"],
   desc:"Roomy roosts for the flock."},
- {id:"pen",tab:"animal",ic:"🚧",builder:"pen",r:3.1,c:1200,inc:0,star:2,animal:"sheep",caps:[4,9,16],tiers:3,
+ {id:"pen",w:120,tab:"animal",ic:"🚧",builder:"pen",r:3.1,c:1200,inc:0,star:2,animal:"sheep",caps:[4,9,16],tiers:3,
   names:["Sheep Pen","Meadow Pen","Wool Empire"],
   desc:"Fenced meadows for wool-bearers."},
- {id:"barn",tab:"animal",ic:"🏚️",builder:"barn",r:3.1,c:6000,inc:0,star:3,animal:"cow",caps:[3,7,12],tiers:3,
+ {id:"barn",w:400,tab:"animal",ic:"🏚️",builder:"barn",r:3.1,c:6000,inc:0,star:3,animal:"cow",caps:[3,7,12],tiers:3,
   names:["Dairy Barn","Mega Barn","Moo Manor"],
   desc:"Big red barns, bigger milk money."},
 ];
-const T_COST=10,T_INC=6.5,T_BEDS=2,T_STAR=2.2;
+const T_COST=10,T_INC=6.5,T_BEDS=2,T_STAR=2.2,T_WOOD=3.2;
 const DEFS={};
 LINES.forEach(L=>{
   const tiers=L.tiers||4;
   for(let t=0;t<tiers;t++){
-    DEFS[L.id+"_"+t]={line:L.id,tier:t,tab:L.tab,ic:L.ic,builder:L.builder,r:L.r,
+    DEFS[L.id+"_"+t]={line:L.id,tier:t,tab:L.tab,ic:L.ic,builder:L.builder,
+      r:Math.round(L.r*TIER_SCALE[t]*100)/100,
       name:L.names[t],desc:L.desc,biome:L.biome,
       c:Math.round(L.c*Math.pow(T_COST,t)),
+      w:Math.round(L.w*Math.pow(T_WOOD,t)),
       inc:L.inc*Math.pow(T_INC,t),
       beds:L.beds?Math.round(L.beds*Math.pow(T_BEDS,t)):0,
       star:Math.max(1,Math.round(L.star*Math.pow(T_STAR,t))),
@@ -871,6 +1034,7 @@ const CREW={
   merchant:  {ic:"🛒",name:"Market Trader",desc:"Works the stall — auto-sells 4/s each.",c:250,g:1.45,max:6},
   keeper:    {ic:"🧹",name:"Housekeeper",desc:"Keeps guests happy: +12% building income each.",c:1500,g:1.7,max:5},
   ranch:     {ic:"🧑‍🌾",name:"Ranch Hand",desc:"Auto-collects eggs, wool and milk.",c:1200,g:1.8,max:3},
+  dog:       {ic:"🐕",name:"Resort Pup",desc:"Loyal companion — follows you around and digs up buried coins.",c:500,g:1,max:1},
 };
 const UPGRADES=[
   {id:"axe1",ic:"🪓",name:"Sharpened Axe",desc:"Gather +100% per swing.",c:80,t:"axe",m:2},
@@ -894,8 +1058,9 @@ const REPNAMES=["humble camp","cozy retreat","charming inn","fine resort","luxur
 
 /* ==================== state ==================== */
 const fresh=()=>({coins:0,wood:0,totE:0,b:[],an:{chicken:0,sheep:0,cow:0},
-  crew:{lumberjack:0,merchant:0,keeper:0,ranch:0},u:{},biome:0,deeds:0,
-  lastSeen:now(),intro:0,fees:0});
+  crew:{lumberjack:0,merchant:0,keeper:0,ranch:0,dog:0},u:{},biome:0,deeds:0,
+  lastSeen:now(),intro:0,fees:0,mute:0,hold:0,
+  q:{i:0,chop:0,sell:0,fish:0,forage:0,collect:0,guests:0,chest:0}});
 let S=fresh();
 let memoryOnly=false;
 const KEY="pinehollow3d_v2";
@@ -910,6 +1075,7 @@ function load(){try{
       return false;}
     const d=JSON.parse(r);S=Object.assign(fresh(),d);
     S.an=Object.assign(fresh().an,d.an||{});S.crew=Object.assign(fresh().crew,d.crew||{});
+    S.q=Object.assign(fresh().q,d.q||{});
     S.b=(Array.isArray(d.b)?d.b:[]).filter(rec=>DEFS[rec.t]);
     return true;}
   catch(e){memoryOnly=true;return false;}}
@@ -931,12 +1097,40 @@ const beds=()=>S.b.reduce((s,b)=>s+(DEFS[b.t].beds||0),0);
 function incomeMult(){return (1+gardens()*0.02)*upM("inc")*(1+S.crew.keeper*0.12)*(1+stars()*0.25)*deedM();}
 function passiveIncome(){return S.b.reduce((s,b)=>s+DEFS[b.t].inc,0)*incomeMult();}
 function bCount(t){return S.b.filter(b=>b.t===t).length;}
-function bCost(t){const d=DEFS[t];return Math.round(d.c*Math.pow(1.30,bCount(t)));}
+function bCost(t){const d=DEFS[t],n=bCount(t);
+  return {c:Math.round(d.c*Math.pow(1.30,n)),w:Math.round(d.w*Math.pow(1.18,n))};}
 function crewCost(k){const d=CREW[k];return Math.round(d.c*Math.pow(d.g,S.crew[k]));}
 function anCap(a){return S.b.filter(b=>DEFS[b.t].animal===a).reduce((s,b)=>s+DEFS[b.t].cap,0);}
 function anCost(a){return Math.round(ANIMALS[a].c*Math.pow(1.35,S.an[a]));}
 function earn(c){S.coins+=c;S.totE+=c;}
 const canPrestige=()=>stars()>=5;
+
+/* ==================== sound (synth, no assets) ==================== */
+let AC=null;
+function ac(){if(S.mute)return null;if(AC)return AC;
+  const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
+  try{AC=new C();}catch(e){return null;}return AC;}
+function tone(f,dur,type,vol,delay,slide){const a=ac();if(!a)return;
+  try{const o=a.createOscillator(),g=a.createGain();o.type=type||"sine";
+  const t0=a.currentTime+(delay||0);
+  o.frequency.setValueAtTime(f,t0);
+  if(slide)o.frequency.exponentialRampToValueAtTime(slide,t0+dur);
+  g.gain.setValueAtTime(vol||0.12,t0);
+  g.gain.exponentialRampToValueAtTime(0.001,t0+dur);
+  o.connect(g);g.connect(a.destination);o.start(t0);o.stop(t0+dur+0.02);}catch(e){}}
+const SFX={
+  chop:()=>tone(150,0.07,"square",0.09,0,85),
+  coin:()=>{tone(880,0.09,"sine",0.11);tone(1318,0.12,"sine",0.09,0.07);},
+  build:()=>{[523,659,784].forEach((f,i)=>tone(f,0.14,"triangle",0.12,i*0.08));},
+  quest:()=>{[659,784,1046,1318].forEach((f,i)=>tone(f,0.16,"triangle",0.13,i*0.09));},
+  chest:()=>{tone(392,0.5,"sine",0.11,0,1568);tone(1046,0.2,"triangle",0.1,0.35);},
+  vip:()=>{[784,988,1175].forEach((f,i)=>tone(f,0.12,"sine",0.1,i*0.06));},
+  dig:()=>{tone(220,0.09,"square",0.08,0,120);tone(220,0.09,"square",0.08,0.12,120);},
+  splash:()=>tone(520,0.15,"sine",0.08,0,240),
+  prestige:()=>{[523,659,784,1046,1318,1568].forEach((f,i)=>tone(f,0.22,"triangle",0.12,i*0.1));},
+};
+addEventListener("pointerdown",()=>{const a=ac();if(a&&a.state==="suspended")a.resume();},{once:false});
+$("muteBtn").onclick=()=>{S.mute=S.mute?0:1;$("muteBtn").textContent=S.mute?"🔇":"🔊";save(true);};
 
 /* ==================== world ==================== */
 const WORLD_R=90;
@@ -990,6 +1184,13 @@ function onDock(x,z){const dx=x-DOCK.x,dz=z-DOCK.z;
 
 /* trees */
 const makeBiomeTree=TREE_BUILDERS[BIOME.tree];
+let GOLD_CH=0.07;
+const GREENS=[0x2E7D46,0x33914F,0x2E6B44,0x3E9A55,0x379149,0x2FA858,0x3BBB66,0x2F8A58,0x3EA06B];
+function goldify(t){
+  t.golden=true;
+  t.g.traverse(o=>{if(o.isMesh&&o.material&&o.material.color&&!o.material.transparent){
+    if(GREENS.includes(o.material.color.getHex()))o.material=MAT(0xE7B93C);}});
+}
 const trees=[];
 function plantTree(x,z){const g=makeBiomeTree();g.position.set(x,0,z);scene.add(g);
   const ob=addOb(x,z,0.75,"tree");
@@ -1066,16 +1267,17 @@ function spawnBuilding(rec,isNew){
 }
 function buyBuilding(t){
   const cost=bCost(t);
-  if(S.coins<cost)return;
+  if(S.coins<cost.c||S.wood<cost.w)return;
   if(built.length>=64){toast("Resort is packed! Sell or rearrange first ↔️");return;}
   const def=DEFS[t];
   const spot=findSpot(def.r);
   if(!spot){toast("No room left — rearrange or sell something! ↔️");return;}
-  S.coins-=cost;
+  S.coins-=cost.c;S.wood-=cost.w;
   const rec={t,x:spot.x,z:spot.z,r:rand(-0.4,0.4)};
   S.b.push(rec);
   spawnBuilding(rec,true);
   toast(def.ic+" "+def.name+" built!");
+  SFX.build();
   confettiAt(spot.x,spot.z);
   rebuildCards();updateHUD(true);
 }
@@ -1162,7 +1364,7 @@ function jackTick(n,dt){
     n.chopT+=dt;n.workT+=dt;
     const per=0.9/Math.min(crewM(),4);
     if(n.chopT>=per){n.chopT=0;
-      S.wood+=axePower()*0.6;
+      S.wood+=axePower()*0.6*(n.tree.golden?6:1);
       shakeTree(n.tree);
       if(Math.random()<0.25)float3D("+"+BIOME.res.ic,n.tree.x,2.6,n.tree.z,"#D69A5C");
       damageTree(n.tree,0.35);}
@@ -1215,15 +1417,17 @@ function ranchTick(n,dt){
   }else{animChar(n.g,0,dt);n.wait-=dt;if(n.wait<=0)n.state="pick";}
 }
 const GUEST_SHIRTS=[0xF2A9C7,0x8AB4F0,0xF2C14E,0x9AD98F,0xE0653F,0xC9A7E8,0x59C6E8];
-function spawnGuest(){
-  const g=makeChar({shirt:GUEST_SHIRTS[Math.random()*GUEST_SHIRTS.length|0],
+function spawnGuest(forceVip){
+  const vip=forceVip||Math.random()<0.11;
+  const g=makeChar(vip?{shirt:0xFFCF6B,pants:0x6E4A6E,hat:0xFFD24A,scale:1.06}
+    :{shirt:GUEST_SHIRTS[Math.random()*GUEST_SHIRTS.length|0],
     pants:Math.random()<0.5?0x39312B:0x6E4A6E,hair:Math.random()<0.7?0x3A2E28:0x8A5E3A,
     scale:rand(0.9,1.05)});
   g.position.set(GATE.x+rand(-1.5,1.5),0,GATE.z+rand(0,2));
   scene.add(g);
   const stays=built.filter(b=>b.def.beds);
   const home=stays.length?stays[Math.random()*stays.length|0]:null;
-  const n={kind:"guest",g,state:"arrive",home,tx:0,tz:0,wait:0,legs:0,inT:0};
+  const n={kind:"guest",g,state:"arrive",home,tx:0,tz:0,wait:0,legs:0,inT:0,vip};
   if(home){n.tx=home.rec.x;n.tz=home.rec.z+home.def.r*0.7;}
   else{n.tx=rand(-4,4);n.tz=rand(6,14);}
   npcs.push(n);return n;
@@ -1233,9 +1437,10 @@ function guestTick(n,dt){
   if(n.state==="arrive"){
     if(walkerStep(n,dt,sp)){
       if(n.home){
-        const fee=Math.max(2,n.home.def.inc*6)*incomeMult()*0.5;
-        earn(fee);S.fees+=fee;
-        float3D("+🪙"+fmt(fee),n.home.rec.x,3,n.home.rec.z,"#FFCF6B");
+        const fee=Math.max(2,n.home.def.inc*6)*incomeMult()*0.5*(n.vip?12:1);
+        earn(fee);S.fees+=fee;S.q.guests++;
+        float3D((n.vip?"👑 ":"")+"+🪙"+fmt(fee),n.home.rec.x,3,n.home.rec.z,n.vip?"#FFD86B":"#FFCF6B");
+        if(n.vip){toast("👑 A VIP checked in — huge tip!");SFX.vip();confettiAt(n.home.rec.x,n.home.rec.z);}
         n.state="inside";n.inT=rand(5,9);n.g.visible=false;
       }else{n.state="wander";n.legs=2;pickGuestSpot(n);}
     }
@@ -1264,14 +1469,49 @@ function pickGuestSpot(n){
   }else{n.tx=rand(-10,10);n.tz=rand(0,18);}
   if(inLake(n.tx,n.tz,1.5)){n.tx=0;n.tz=8;}
 }
+function spawnDog(){
+  const g=makeDog();
+  g.position.set(player.position.x+1.5,0,player.position.z+1);
+  scene.add(g);
+  const n={kind:"dog",g,digT:rand(30,60),state:"follow",digA:0};
+  npcs.push(n);return n;
+}
+function dogTick(n,dt,t){
+  const tail=n.g.userData.tail;
+  if(tail)tail.rotation.x=Math.sin(t*0.02)*0.5;
+  if(n.state==="dig"){
+    n.digA+=dt;
+    n.g.position.y=Math.abs(Math.sin(n.digA*18))*0.12;
+    if(n.digA>=1.3){n.state="follow";
+      const coins=Math.max(15,passiveIncome()*6)*rand(0.8,1.3);
+      earn(coins);
+      float3D("🐕💰 +🪙"+fmt(coins),n.g.position.x,1.2,n.g.position.z,"#FFCF6B");
+      SFX.coin();}
+    return;
+  }
+  const dx=player.position.x-n.g.position.x,dz=player.position.z-n.g.position.z;
+  const d=Math.hypot(dx,dz);
+  if(d>20){n.g.position.set(player.position.x+1.5,0,player.position.z+1);}
+  else if(d>2.4){
+    const sp=Math.min(5.2,2.5+d*0.4);
+    n.g.position.x+=dx/d*sp*dt;n.g.position.z+=dz/d*sp*dt;
+    n.g.rotation.y=Math.atan2(dx,dz)+Math.PI/2;
+    n.g.position.y=Math.abs(Math.sin(t*0.014))*0.09;
+  }else{
+    n.g.position.y=0;
+    n.digT-=dt;
+    if(n.digT<=0){n.digT=rand(40,80);n.state="dig";n.digA=0;SFX.dig();}
+  }
+}
 function syncCrewNPCs(){
   const want={jack:Math.min(S.crew.lumberjack,10),merchant:Math.min(S.crew.merchant,6),
-    keeper:Math.min(S.crew.keeper,5),ranch:Math.min(S.crew.ranch,3)};
+    keeper:Math.min(S.crew.keeper,5),ranch:Math.min(S.crew.ranch,3),dog:Math.min(S.crew.dog,1)};
   for(const k in want){
     let have=npcs.filter(n=>n.kind===k).length;
     while(have<want[k]){
       if(k==="jack")spawnJack();else if(k==="merchant")spawnMerchant(have);
-      else if(k==="keeper")spawnKeeper();else spawnRanch();
+      else if(k==="keeper")spawnKeeper();else if(k==="ranch")spawnRanch();
+      else spawnDog();
       have++;}
   }
 }
@@ -1293,8 +1533,12 @@ function treeTick(t,dt){
     if(t.fallT>1.1){t.state="stump";t.g.visible=false;t.respawn=45;}
   }else if(t.state==="stump"){
     t.respawn-=dt;
-    if(t.respawn<=0){t.state="grow";t.g.visible=true;t.g.rotation.z=0;
-      t.g.scale.setScalar(0.1);t.hp=t.maxhp;}
+    if(t.respawn<=0){
+      scene.remove(t.g);
+      t.g=makeBiomeTree();t.g.position.set(t.x,0,t.z);t.g.userData.tree=t;scene.add(t.g);
+      t.golden=false;
+      if(Math.random()<GOLD_CH){goldify(t);toast("✨ A golden tree sprouted somewhere!");}
+      t.state="grow";t.g.scale.setScalar(0.1);t.hp=t.maxhp;}
   }else if(t.state==="grow"){
     const s=Math.min(1,t.g.scale.x+dt*0.25);
     t.g.scale.setScalar(s);
@@ -1388,6 +1632,9 @@ function findFocus(){
     if(d<b.def.r+1.6&&d<bd){bd=d;best={type:"collect",ref:b,
       label:"Collect "+Math.floor(b.produce)+" "+ANIMALS[b.def.animal].ic,em:"🧺"};}}
   if(best)return best;
+  for(const ch of chests){
+    if(Math.hypot(px-ch.x,pz-ch.z)<2.0)
+      return {type:"chest",ref:ch,label:"Open treasure chest!",em:"🎁"};}
   for(const bu of bushes){if(!bu.ready)continue;
     if(Math.hypot(px-bu.x,pz-bu.z)<1.8)
       return {type:"berry",ref:bu,label:"Forage",em:"🫐"};}
@@ -1404,9 +1651,16 @@ function doAction(dt){
     player.rotation.y=Math.atan2(t.x-player.position.x,t.z-player.position.z);
     pstate.actT+=dt;
     if(pstate.actT>=0.42){pstate.actT=0;
-      const w=axePower();S.wood+=w;
+      const nt=now();
+      pstate.combo=(nt-(pstate.lastChop||0)<1400)?(pstate.combo||0)+1:1;
+      pstate.lastChop=nt;
+      const mult=1+Math.min(pstate.combo-1,20)*0.05;
+      const w=axePower()*mult*(t.golden?6:1);
+      S.wood+=w;S.q.chop++;
       shakeTree(t);damageTree(t,1);
-      float3D("+"+fmt(w)+" "+BIOME.res.ic,t.x,2.8,t.z,"#D69A5C");
+      SFX.chop();
+      float3D("+"+fmt(w)+" "+BIOME.res.ic+(t.golden?" ✨":"")+(pstate.combo>=5?" 🔥×"+mult.toFixed(2):""),
+        t.x,2.8,t.z,t.golden?"#FFD86B":"#D69A5C");
     }
   }else if(focus.type==="fish"){
     pstate.mode="fish";
@@ -1414,8 +1668,9 @@ function doAction(dt){
     pstate.fishT+=dt;
     if(pstate.fishT>=2.2){pstate.fishT=0;
       const v=Math.round(rand(6,14))*upM("fish")*(1+stars()*0.3)*deedM();
-      earn(v);
+      earn(v);S.q.fish++;
       float3D("🐟 +🪙"+fmt(v),FISH_SPOT.x,1.4,FISH_SPOT.z,"#59C6E8");
+      SFX.splash();
       splash();}
   }else pstate.mode=null;
 }
@@ -1424,15 +1679,17 @@ function tapAction(){
   if(focus.type==="market"){
     const n=Math.floor(S.wood);
     if(n<1){toast("Nothing to sell — go gather! 🪓");return;}
-    const v=n*woodPrice();S.wood-=n;earn(v);
+    const v=n*woodPrice();S.wood-=n;earn(v);S.q.sell++;
     float3D("+🪙"+fmt(v),MARKET.x,3,MARKET.z,"#FFCF6B");
-    toast("Sold "+fmt(n)+" "+BIOME.res.ic+" for 🪙"+fmt(v)+"!");
-  }else if(focus.type==="collect"){collectProduce(focus.ref,true);}
+    SFX.coin();
+    toast("Sold "+fmt(n)+" "+BIOME.res.ic+" for 🪙"+fmt(v)+"!  (tap the "+BIOME.res.ic+" counter to reserve resources for building)");
+  }else if(focus.type==="collect"){collectProduce(focus.ref,true);S.q.collect++;SFX.coin();}
+  else if(focus.type==="chest"){openChest(focus.ref);}
   else if(focus.type==="berry"){
     const bu=focus.ref;bu.ready=false;bu.cool=40;
     bu.berries.forEach(b=>b.visible=false);
     const v=Math.round(rand(3,7))*(1+stars()*0.4)*deedM();
-    earn(v);float3D("+🪙"+fmt(v),bu.x,1.5,bu.z,"#C9A7E8");
+    earn(v);S.q.forage++;float3D("+🪙"+fmt(v),bu.x,1.5,bu.z,"#C9A7E8");
   }
 }
 function splash(){
@@ -1563,6 +1820,7 @@ $("moveSell").onclick=()=>{if(moveSel){sellBuilding(moveSel);moveSel=null;selRin
 function handleTap(x,y){
   ndc.set(x/innerWidth*2-1,-(y/innerHeight)*2+1);
   ray.setFromCamera(ndc,camera);
+  if(bird&&ray.intersectObject(bird.g,true).length){collectBird();return;}
   if(moveMode){
     const meshes=[];built.forEach(b=>b.g.traverse(o=>{if(o.isMesh)meshes.push(o);}));
     const hit=ray.intersectObjects(meshes,false)[0];
@@ -1602,6 +1860,10 @@ let cardUpdaters=[];
 function cardEl(html,onclick){const b=document.createElement("button");b.className="card";
   b.innerHTML=html;b.onclick=onclick;return b;}
 const TIER_TAGS=["","◆ Premium","◆◆ Lux","◆◆◆ Mega"];
+const TIER_BLURB=["",
+ "Renovated: royal-blue roof, warm lanterns, trimmed hedges.",
+ "White & gold: marble plinth, red carpet, topiary, gilded roof.",
+ "A palace: glowing windows, fountain, searchlights, crown star."];
 function rebuildCards(){
   cardUpdaters=[];
   const wrap=$("cards");wrap.innerHTML="";
@@ -1619,7 +1881,7 @@ function rebuildCards(){
         const d=DEFS[id];
         const card=cardEl(`<span class="ic">${d.ic}</span>
           <span><span class="nm">${d.name}${t?` <small style="color:var(--gold);font-size:.68rem">${TIER_TAGS[t]}</small>`:""}</span>
-          <span class="ds">${d.desc}</span><span class="ow"></span></span>
+          <span class="ds">${t?TIER_BLURB[t]:d.desc}</span><span class="ow"></span></span>
           <span class="rt"><span class="cost"></span><span class="gain"></span></span>`,
           ()=>buyBuilding(id));
         wrap.appendChild(card);
@@ -1629,9 +1891,10 @@ function rebuildCards(){
           ow.style.display=o?"":"none";
           if(o)ow.textContent=`Built ${o}`+(d.inc?` · +${fmt(o*d.inc*incomeMult())}/s`:"")
             +(d.beds?` · ${o*d.beds} beds`:"")+(d.cap?` · houses ${o*d.cap} ${ANIMALS[d.animal].ic}`:"");
-          co.textContent="🪙"+fmt(bCost(id));
+          const cc=bCost(id);
+          co.innerHTML="🪙"+fmt(cc.c)+(cc.w?` <span style="color:var(--wood,#D69A5C)">${BIOME.res.ic}${fmt(cc.w)}</span>`:"");
           ga.textContent=(d.inc?`+${fmt(d.inc*incomeMult())}/s`:``)+` · +${d.star}⭐`;
-          card.disabled=S.coins<bCost(id);
+          card.disabled=S.coins<cc.c||S.wood<cc.w;
         };
         upd();cardUpdaters.push(upd);
       }
@@ -1711,6 +1974,111 @@ function rebuildCards(){
 }
 function hintEl(t){const p=document.createElement("p");p.className="hint";p.textContent=t;return p;}
 
+/* ==================== quests / goals ==================== */
+const QUESTS=[
+ {d:"Gather 10 resources",ic:"🪓",n:10,p:()=>S.q.chop,r:{c:25}},
+ {d:"Sell at the market stall",ic:"💰",n:1,p:()=>S.q.sell,r:{c:30}},
+ {d:"Build a tent",ic:"⛺",n:1,p:()=>bCount("tent_0"),r:{c:60,w:10}},
+ {d:"Welcome 3 guests",ic:"🧑",n:3,p:()=>S.q.guests,r:{c:90}},
+ {d:"Build a campfire",ic:"🔥",n:1,p:()=>bCount("campfire_0"),r:{c:130,w:20}},
+ {d:"Catch 3 fish",ic:"🎣",n:3,p:()=>S.q.fish,r:{c:180}},
+ {d:"Hire a Harvest Crew",ic:"🪓",n:1,p:()=>S.crew.lumberjack,r:{c:250}},
+ {d:"Own 3 stay buildings",ic:"🏡",n:3,p:()=>S.b.filter(x=>DEFS[x.t].beds).length,r:{c:400,w:60}},
+ {d:"Forage 5 berry bushes",ic:"🫐",n:5,p:()=>S.q.forage,r:{c:550}},
+ {d:"Build a Flower Garden",ic:"🌷",n:1,p:()=>gardens(),r:{c:750}},
+ {d:"Reach ★ 1",ic:"⭐",n:1,p:stars,r:{c:1100,w:120}},
+ {d:"Adopt the Resort Pup",ic:"🐕",n:1,p:()=>S.crew.dog,r:{c:1400}},
+ {d:"Own a chicken",ic:"🐔",n:1,p:()=>S.an.chicken,r:{c:1800}},
+ {d:"Collect produce 5 times",ic:"🧺",n:5,p:()=>S.q.collect,r:{c:2800}},
+ {d:"Build any ◆ Premium tier",ic:"🏗️",n:1,p:()=>S.b.filter(x=>DEFS[x.t].tier>=1).length,r:{c:4500,w:400}},
+ {d:"Reach ★ 2",ic:"⭐",n:2,p:stars,r:{c:9000}},
+ {d:"Open 2 treasure chests",ic:"🎁",n:2,p:()=>S.q.chest,r:{c:14000}},
+ {d:"Hire 6 crew members",ic:"🧑‍🔧",n:6,p:()=>S.crew.lumberjack+S.crew.merchant+S.crew.keeper+S.crew.ranch,r:{c:22000}},
+ {d:"Build any ◆◆ Lux tier",ic:"🏗️",n:1,p:()=>S.b.filter(x=>DEFS[x.t].tier>=2).length,r:{c:65000,w:3000}},
+ {d:"Reach ★ 3",ic:"⭐",n:3,p:stars,r:{c:130000}},
+ {d:"Own 10 animals",ic:"🐮",n:10,p:()=>S.an.chicken+S.an.sheep+S.an.cow,r:{c:260000}},
+ {d:"Build any ◆◆◆ Mega tier",ic:"👑",n:1,p:()=>S.b.filter(x=>DEFS[x.t].tier>=3).length,r:{c:850000,w:15000}},
+ {d:"Reach ★★★★★",ic:"🌟",n:5,p:stars,r:{c:3e6}},
+];
+function questTick(){
+  const q=QUESTS[S.q.i];
+  const bar=$("questBar");
+  if(!q){bar.classList.add("hidden");return;}
+  bar.classList.remove("hidden");
+  const v=Math.min(q.p(),q.n);
+  $("qIc").textContent=q.ic;
+  $("qTxt").textContent=q.d+(q.n>1?`  (${fmt(v)}/${q.n})`:"");
+  $("qBarIn").style.width=(v/q.n*100)+"%";
+  $("qReward").textContent="🪙"+fmt(q.r.c)+(q.r.w?" +"+BIOME.res.ic+fmt(q.r.w):"");
+  if(v>=q.n){
+    earn(q.r.c);if(q.r.w)S.wood+=q.r.w;
+    toast("🎯 Goal complete: "+q.d+"  →  +🪙"+fmt(q.r.c)+(q.r.w?" +"+BIOME.res.ic+fmt(q.r.w):""));
+    SFX.quest();
+    confettiAt(player.position.x,player.position.z);
+    S.q.i++;save(true);
+  }
+}
+
+/* ==================== treasure chests ==================== */
+const chests=[];let chestT=45;
+function spawnChest(){
+  for(let tries=0;tries<40;tries++){
+    const a=rand(0,6.283),d=rand(10,WORLD_R-10);
+    const x=Math.cos(a)*d,z=Math.sin(a)*d;
+    if(inLake(x,z,2)||collides(x,z,0.8,null))continue;
+    const g=makeChest();g.position.set(x,0,z);g.rotation.y=rand(0,6.283);scene.add(g);
+    chests.push({g,x,z});
+    toast("🎁 A treasure chest appeared somewhere in the resort!");
+    return;
+  }
+}
+function openChest(ch){
+  const i=chests.indexOf(ch);if(i<0)return;
+  chests.splice(i,1);
+  const coins=Math.max(40,passiveIncome()*25)*rand(0.9,1.4);
+  earn(coins);S.q.chest++;
+  let msg="🎁 +🪙"+fmt(coins);
+  if(Math.random()<0.4){const wd=Math.max(12,S.crew.lumberjack*20+10);S.wood+=wd;msg+="  +"+BIOME.res.ic+fmt(wd);}
+  float3D(msg,ch.x,1.6,ch.z,"#FFCF6B");
+  SFX.chest();confettiAt(ch.x,ch.z);
+  const lid=ch.g.userData.lid;
+  fx.push({g:ch.g,t:0,life:1.1,fn:(f,dt)=>{
+    if(lid)lid.rotation.x=Math.max(-1.9,lid.rotation.x-dt*5);
+    if(f.t>0.6)f.g.position.y-=dt*1.4;}});
+}
+
+/* ==================== golden goose ==================== */
+let bird=null,birdT=80;
+function spawnBird(){
+  const g=makeGoldBird();
+  const px=player.position.x,pz=player.position.z;
+  const dir=Math.random()<0.5?1:-1;
+  bird={g,t:0,dur:9,
+    x0:px-46*dir,z0:pz+rand(-18,18),x1:px+46*dir,z1:pz+rand(-18,18)};
+  g.position.set(bird.x0,8,bird.z0);
+  g.rotation.y=Math.atan2(bird.x1-bird.x0,bird.z1-bird.z0)-Math.PI/2*0+0;
+  g.scale.setScalar(1.6);
+  scene.add(g);
+  toast("🪿✨ A golden goose flies over — tap it!");
+}
+function birdTick(dt,t){
+  if(!bird)return;
+  bird.t+=dt;
+  const k=bird.t/bird.dur;
+  if(k>=1){scene.remove(bird.g);bird=null;return;}
+  bird.g.position.set(lerp(bird.x0,bird.x1,k),8+Math.sin(t*0.004)*0.6,lerp(bird.z0,bird.z1,k));
+  const w=bird.g.userData.wings;
+  if(w){w[0].rotation.x=Math.sin(t*0.02)*0.7;w[1].rotation.x=-Math.sin(t*0.02)*0.7;}
+}
+function collectBird(){
+  if(!bird)return;
+  const coins=Math.max(120,passiveIncome()*45);
+  earn(coins);
+  float3D("🪿 +🪙"+fmt(coins),bird.g.position.x,bird.g.position.y,bird.g.position.z,"#FFD86B");
+  SFX.quest();
+  scene.remove(bird.g);bird=null;
+}
+
 /* ==================== prestige ==================== */
 let softReload=()=>location.reload();
 function openPrestige(){
@@ -1721,7 +2089,7 @@ function openPrestige(){
   closeSheet();
 }
 $("prestigeCancel").onclick=()=>$("prestigeModal").classList.remove("show");
-$("prestigeGo").onclick=()=>{doPrestige();};
+$("prestigeGo").onclick=()=>{SFX.prestige();doPrestige();};
 $("prestigeChip").onclick=openPrestige;
 function doPrestige(){
   if(!canPrestige())return;
@@ -1738,7 +2106,7 @@ function updateHUD(force){
   $("hCoin").textContent=fmt(S.coins);
   $("hWood").textContent=fmt(S.wood);
   $("hCoinS").textContent="+"+fmt(passiveIncome())+"/s";
-  $("hWoodS").textContent="+"+fmt(S.crew.lumberjack*axePower()*0.6*Math.min(crewM(),4)/0.9)+"/s";
+  $("hWoodS").textContent=(S.hold?"🔒 ":"")+"+"+fmt(S.crew.lumberjack*axePower()*0.6*Math.min(crewM(),4)/0.9)+"/s";
   $("hGuest").textContent=npcs.filter(n=>n.kind==="guest").length;
   const st=stars();
   $("starRow").textContent="★".repeat(st)+"☆".repeat(5-st);
@@ -1801,7 +2169,7 @@ function applyOffline(){
   const secs=Math.min(away,8*3600*1000)/1000;
   let coins=passiveIncome()*secs;
   let wood=S.crew.lumberjack*axePower()*0.66*Math.min(crewM(),4)*secs;
-  const sold=Math.min(wood,S.crew.merchant*4*crewM()*secs);
+  const sold=S.hold?0:Math.min(wood,S.crew.merchant*4*crewM()*secs);
   coins+=sold*woodPrice();wood-=sold;
   if(S.crew.ranch>0)for(const k in ANIMALS){
     const n=Math.min(S.an[k],anCap(k));
@@ -1851,7 +2219,17 @@ function ambientTick(dt,t){
     if(ud.chair)ud.chair.position.x=Math.sin(t*0.0012+b.rec.z)*1.1;
     if(ud.tstar){ud.tstar.position.y+=Math.sin(t*0.003)*0.002;ud.tstar.rotation.y+=dt;}
     if(ud.flag)ud.flag.rotation.y=Math.sin(t*0.004+b.rec.x)*0.3;
+    if(ud.lanterns)for(let i=0;i<ud.lanterns.length;i++){const l=ud.lanterns[i];
+      l.scale.setScalar(l.userData.bs*(0.85+Math.abs(Math.sin(t*0.0035+i*1.7+b.rec.z))*0.4));}
+    if(ud.sparkles)for(let i=0;i<ud.sparkles.length;i++){const sp=ud.sparkles[i];
+      const a=t*0.0022+sp.userData.ph;
+      sp.position.set(Math.cos(a)*0.95,sp.userData.ry+Math.sin(a*2.3)*0.18,Math.sin(a)*0.95);}
+    if(ud.beams)for(const bm of ud.beams)bm.rotation.y=t*0.0009;
+    if(ud.fball)ud.fball.position.y=1.05+Math.abs(Math.sin(t*0.004+b.rec.x))*0.12;
   }
+  for(const ch of chests){const gl=ch.g.userData.glow;
+    if(gl)gl.scale.setScalar(gl.userData.bs*(0.8+Math.abs(Math.sin(t*0.005+ch.x))*0.5));
+    ch.g.rotation.y+=dt*0.4;}
   lakeM.position.y=0.06+Math.sin(t*0.0015)*0.015;
   for(const a of animals){
     a.t+=dt;
@@ -1873,6 +2251,13 @@ for(const k in ANIMALS){const n=Math.min(S.an[k],anCap(k));for(let i=0;i<n;i++)s
 syncCrewNPCs();
 applyOffline();
 // biome labels in UI
+$("muteBtn").textContent=S.mute?"🔇":"🔊";
+const woodStatEl=$("resIcHud").closest(".stat");
+woodStatEl.style.cursor="pointer";
+woodStatEl.style.pointerEvents="auto";
+woodStatEl.onclick=()=>{S.hold=S.hold?0:1;
+  toast(S.hold?"🔒 Reserving resources — traders pause selling":"🔓 Traders resume auto-selling");
+  updateHUD(true);};
 $("hudBiome").textContent=BIOME.em;
 $("resIcHud").textContent=BIOME.res.ic;
 $("sheetTitle").textContent="🏗️ Build "+BIOME.name.split(" ")[0];
@@ -1903,14 +2288,20 @@ function frame(t){
   updatePrompt();
 
   earn(passiveIncome()*dt);
-  if(S.crew.merchant&&S.wood>=1){
+  if(S.crew.merchant&&S.wood>=1&&!S.hold){
     const sold=Math.min(S.wood,S.crew.merchant*4*crewM()*dt);
     S.wood-=sold;earn(sold*woodPrice());}
   produceTick(dt);
   guestSpawnTick(dt);
+  chestT-=dt;
+  if(chestT<=0){chestT=rand(75,140);if(chests.length<2)spawnChest();}
+  birdT-=dt;
+  if(birdT<=0){birdT=rand(90,170);if(!bird)spawnBird();}
+  birdTick(dt,t);
 
   for(let i=npcs.length-1;i>=0;i--){const n=npcs[i];
     if(n.kind==="jack")jackTick(n,dt);
+    else if(n.kind==="dog")dogTick(n,dt,t);
     else if(n.kind==="keeper")keeperTick(n,dt);
     else if(n.kind==="ranch")ranchTick(n,dt);
     else if(n.kind==="guest")guestTick(n,dt);
@@ -1921,7 +2312,7 @@ function frame(t){
   fxTick(dt);
   updateCamera(dt);
 
-  hudT+=dt;if(hudT>0.25){hudT=0;updateHUD();}
+  hudT+=dt;if(hudT>0.25){hudT=0;updateHUD();questTick();}
   saveT+=dt;if(saveT>15){saveT=0;save(true);}
 
   renderer.render(scene,camera);
