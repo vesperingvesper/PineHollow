@@ -173,6 +173,7 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
 .spin{width:34px;height:34px;border:4px solid #2f4a3b;border-top-color:var(--gold);
   border-radius:50%;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+@keyframes glowp{0%,100%{box-shadow:0 4px 0 rgba(0,0,0,.3),0 0 0 0 rgba(255,207,107,.5)}50%{box-shadow:0 4px 0 rgba(0,0,0,.3),0 0 16px 4px rgba(255,207,107,.45)}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.05s!important}}
 </style>
 </head>
@@ -183,9 +184,13 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
 <div id="hud">
   <div class="stats">
     <div class="stat"><span class="ic">🪙</span><div><div class="v" id="hCoin">0</div><div class="s" id="hCoinS">+0/s</div></div></div>
-    <div class="stat"><span class="ic">🪵</span><div><div class="v" id="hWood">0</div><div class="s" id="hWoodS">+0/s</div></div></div>
+    <div class="stat"><span class="ic" id="resIcHud">🪵</span><div><div class="v" id="hWood">0</div><div class="s" id="hWoodS">+0/s</div></div></div>
     <div class="stat"><span class="ic">🧑</span><div><div class="v" id="hGuest">0</div><div class="s">guests</div></div></div>
-    <div class="stat"><div><div id="starRow">☆☆☆☆☆</div><div class="s" id="hRep">humble camp</div></div></div>
+    <div class="stat"><span class="ic" id="hudBiome">🌲</span><div><div id="starRow">☆☆☆☆☆</div><div class="s" id="hRep">humble camp</div></div></div>
+    <div class="stat hidden" id="deedStat"><span class="ic">🏆</span><div><div class="v" id="hDeed">0</div><div class="s" id="hDeedS"></div></div></div>
+    <button class="stat hidden" id="prestigeChip" style="border-color:var(--gold);cursor:pointer;animation:glowp 1.6s ease-in-out infinite">
+      <span class="ic">🏆</span><div><div class="v" style="color:var(--gold)">Sell resort!</div><div class="s">★★★★★ reached</div></div>
+    </button>
   </div>
   <div class="spacer"></div>
   <button id="menuBtn" aria-label="Menu">☰</button>
@@ -219,7 +224,7 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
 <div id="sheet">
   <div class="sheet-grip"></div>
   <div class="sheet-head">
-    <h2>🏗️ Build Pinehollow</h2>
+    <h2 id="sheetTitle">🏗️ Build Pinehollow</h2>
     <div class="bal"><span id="sCoin">🪙 0</span><span id="sWood">🪵 0</span>
       <button id="sheetClose" aria-label="Close">✕</button></div>
   </div>
@@ -239,15 +244,15 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
 <div class="modalbg" id="introModal">
   <div class="modal">
     <h2>🌲 Welcome to Pinehollow</h2>
-    <p>You've got a patch of forest, a lake, and a dream: turn a single tent into a five-star woodland resort. Chop wood, build cabins, and hire a crew to do the work while guests roll in and coins pile up.</p>
+    <p>You've got a patch of wilderness, a lake, and a dream: turn a single tent into a five-star resort. Gather and sell resources, fish, forage, raise animals — everything pays in coins, and coins build your empire. Reach ★★★★★ and you can <b style="color:var(--gold)">sell the whole resort</b> for a permanent income boost and start again in a brand-new land: desert dunes, a tropical cove, frozen peaks…</p>
     <div class="ctrls">
       <span class="k">Move</span><span>WASD / arrows / the left stick</span>
       <span class="k">Look</span><span>Drag the screen to rotate the camera</span>
-      <span class="k">E</span><span>The green button — chop, fish, harvest, collect</span>
+      <span class="k">E</span><span>The green button — gather, fish, forage, collect</span>
       <span class="k">B</span><span>Open the Build menu (🏗️)</span>
       <span class="k">↔️</span><span>Rearrange or sell your buildings</span>
     </div>
-    <p style="margin-top:12px"><b style="color:var(--leaf)">First goal:</b> walk to a tree, hold the green button to chop 5 wood, then build your first tent.</p>
+    <p style="margin-top:12px"><b style="color:var(--leaf)">First goal:</b> walk to a tree, hold the green button to gather, sell at the market stall, then build your first tent (🪙10).</p>
     <div class="btnrow"><button class="go" id="introOk">Let's build 🌲</button></div>
   </div>
 </div>
@@ -277,6 +282,21 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
       <button class="danger" id="mReset">🔥 Reset</button>
     </div>
     <div class="btnrow" style="margin-top:9px"><button id="menuClose">Close</button></div>
+  </div>
+</div>
+
+<!-- Prestige -->
+<div class="modalbg" id="prestigeModal">
+  <div class="modal">
+    <h2>🏆 Sell the Resort?</h2>
+    <p>You've built a ★★★★★ legend! Selling hands over the keys: <b style="color:#ffd9d0">all buildings, animals, crew, upgrades and coins reset.</b></p>
+    <p>In return you earn a permanent <b style="color:var(--gold)">Deed</b> and move to:</p>
+    <div class="haul" id="prestigeNext">🏜️ Sunspire Dunes</div>
+    <p style="text-align:center">New exclusive buildings await, and your Deeds grant <b style="color:var(--gold)" id="prestigeMult">×2.5 total income</b> — forever.</p>
+    <div class="btnrow">
+      <button id="prestigeCancel">Not yet</button>
+      <button class="go" id="prestigeGo">Sell &amp; move 🏆</button>
+    </div>
   </div>
 </div>
 
@@ -330,14 +350,15 @@ renderer.outputEncoding=THREE.sRGBEncoding;
 const scene=new THREE.Scene();
 scene.fog=new THREE.Fog(0xBFE0EF,60,175);
 
-// gradient sky
-(function(){
+// gradient sky (called by game logic with biome colors)
+function setSky(c1,c2,c3){
   const cvs=document.createElement("canvas");cvs.width=8;cvs.height=256;
-  const g=cvs.getContext("2d").createLinearGradient(0,0,0,256);
-  g.addColorStop(0,"#8FC7E8");g.addColorStop(.45,"#BFE3F0");g.addColorStop(1,"#E8F5EC");
-  const ctx=cvs.getContext("2d");ctx.fillStyle=g;ctx.fillRect(0,0,8,256);
+  const ctx=cvs.getContext("2d");
+  const g=ctx.createLinearGradient(0,0,0,256);
+  g.addColorStop(0,c1);g.addColorStop(.45,c2);g.addColorStop(1,c3);
+  ctx.fillStyle=g;ctx.fillRect(0,0,8,256);
   const tx=new THREE.CanvasTexture(cvs);tx.encoding=THREE.sRGBEncoding;scene.background=tx;
-})();
+}
 
 const camera=new THREE.PerspectiveCamera(52,innerWidth/innerHeight,0.5,400);
 
@@ -635,86 +656,287 @@ const BUILDERS={
 };
 const ANIMAL_BUILDERS={chicken:makeChicken,sheep:makeSheep,cow:makeCow};
 
-/* ======== PART 2B ======== */
+/* == 2A2: biome assets == */
 "use strict";
-/* ==================== catalog ==================== */
-const DEFS={
-  tent:     {tab:"stay",ic:"⛺",name:"Campsite Tent",desc:"A humble start. Sleeps one cozy guest.",c:10,w:5,inc:0.5,beds:1,star:1,r:1.7},
-  cabin:    {tab:"stay",ic:"🛖",name:"Log Cabin",desc:"Built from honest Pinehollow timber.",c:120,w:25,inc:4,beds:2,star:2,r:1.9},
-  cottage:  {tab:"stay",ic:"🏡",name:"Cottage",desc:"Whitewashed walls, red roof, happy guests.",c:650,w:60,inc:16,beds:3,star:3,r:2.1},
-  treehouse:{tab:"stay",ic:"🌳",name:"Treehouse Suite",desc:"Room with a view. And squirrels.",c:2800,w:140,inc:55,beds:3,star:5,r:2.0},
-  lodge:    {tab:"stay",ic:"🏔️",name:"Lakeside Lodge",desc:"Fireplace included, marshmallows extra.",c:12000,w:400,inc:210,beds:6,star:8,r:2.8},
-  hotel:    {tab:"stay",ic:"🏨",name:"Grand Pine Hotel",desc:"Five stars, all visible at night.",c:60000,w:1500,inc:900,beds:12,star:14,r:3.2},
-  campfire: {tab:"amenity",ic:"🔥",name:"Campfire",desc:"Guests gather round. Morale up.",c:40,w:10,inc:1,star:1,r:1.3},
-  garden:   {tab:"amenity",ic:"🌷",name:"Flower Garden",desc:"Earns a little, and every garden adds +2% to all income.",c:250,w:0,inc:6,star:2,r:1.7},
-  cafe:     {tab:"amenity",ic:"☕",name:"Forest Café",desc:"Pinecone lattes. Guests spend more.",c:1800,w:120,inc:60,star:4,r:2.3},
-  pool:     {tab:"amenity",ic:"🏊",name:"Swimming Pool",desc:"Splashy centerpiece with sun umbrellas.",c:5000,w:150,inc:120,star:6,r:3.6},
-  spring:   {tab:"amenity",ic:"♨️",name:"Hot Spring",desc:"Steam rises, so does revenue.",c:25000,w:600,inc:520,star:9,r:3.2},
-  coop:     {tab:"animal",ic:"🛖",name:"Chicken Coop",desc:"Houses up to 4 chickens.",c:150,w:30,inc:0,star:1,r:1.7,cap:4,animal:"chicken"},
-  pen:      {tab:"animal",ic:"🚧",name:"Sheep Pen",desc:"Fenced meadow for up to 4 sheep.",c:900,w:80,inc:0,star:2,r:3.1,cap:4,animal:"sheep"},
-  barn:     {tab:"animal",ic:"🏚️",name:"Dairy Barn",desc:"A big red barn for up to 3 cows.",c:4500,w:250,inc:0,star:3,r:3.1,cap:3,animal:"cow"},
-};
+/* ==================== biome trees ==================== */
+function makeCactus(){const g=grp();
+  const s=rand(0.85,1.2);
+  g.add(at(cyl(0.32,2.2,0x3E9A55,true),0,1.1,0));
+  const a1=at(cyl(0.2,0.9,0x3E9A55,true),0.55,1.5,0);a1.rotation.z=0.5;g.add(a1);
+  g.add(at(cyl(0.18,0.7,0x3E9A55,true),0.82,2.05,0));
+  const a2=at(cyl(0.18,0.8,0x379149,true),-0.5,1.1,0);a2.rotation.z=-0.55;g.add(a2);
+  g.add(at(cyl(0.16,0.6,0x379149,true),-0.75,1.55,0));
+  g.add(at(sph(0.16,0xF25C8E,true),0,2.32,0)); // flower
+  g.add(at(sph(0.1,0xFFCF6B,true),0.82,2.5,0));
+  g.scale.setScalar(s);g.userData.sway=Math.random()*6;return g;}
+function makePalm(){const g=grp();
+  const s=rand(0.9,1.2);
+  for(let i=0;i<5;i++){const seg=at(cyl(0.16-i*0.015,0.62,0x9A7448,true),i*0.09,0.3+i*0.58,i*0.05);
+    seg.rotation.z=-0.08*i;g.add(seg);}
+  const top=[0.42,3.15,0.24];
+  for(let i=0;i<6;i++){const a=i/6*6.283;
+    const fr=box(1.7,0.07,0.42,i%2?0x2FA858:0x3BBB66);
+    fr.position.set(top[0]+Math.cos(a)*0.75,top[1]+0.12,top[2]+Math.sin(a)*0.75);
+    fr.rotation.y=-a;fr.rotation.z=0.42;g.add(fr);}
+  g.add(at(sph(0.14,0x6B4A2E,true),top[0]+0.16,top[1]-0.1,top[2]));
+  g.add(at(sph(0.13,0x6B4A2E,true),top[0]-0.14,top[1]-0.12,top[2]+0.12));
+  g.scale.setScalar(s);g.userData.sway=Math.random()*6;return g;}
+function makeSpruceSnow(){const g=grp();
+  const s=rand(0.85,1.25);
+  g.add(at(cyl(0.22,1.4,0x6B4A38,true),0,0.7,0));
+  const gr=0x2E6B44;
+  const L=[[1.35,1.7,1.7],[1.05,1.5,2.6],[0.72,1.2,3.45]];
+  for(const [r,h,y] of L){
+    g.add(at(cone(r,h,gr),0,y,0));
+    g.add(at(cone(r*0.82,h*0.5,0xF4FAFC),0,y+h*0.28,0));} // snow caps
+  g.add(at(sph(0.1,0xF4FAFC,true),0,4.15,0));
+  g.scale.setScalar(s);g.userData.sway=Math.random()*6;return g;}
+const TREE_BUILDERS={pine:makeTree,cactus:makeCactus,palm:makePalm,spruce:makeSpruceSnow};
+
+/* ==================== exclusive amenities ==================== */
+function makeSauna(){const g=grp();
+  g.add(at(box(2.4,0.18,2.2,0x6B4A2E),0,0.09,0));
+  g.add(at(box(2.1,1.25,1.9,0xB98A54),0,0.85,0));
+  for(let i=0;i<4;i++)g.add(at(box(2.14,0.07,1.94,0x8A5E3A),0,0.42+i*0.3,0));
+  const rf=mk(GEO.cone4,0x5A4632);rf.scale.set(1.75,0.85,1.75);rf.rotation.y=Math.PI/4;rf.position.y=1.85;g.add(rf);
+  g.add(at(box(0.55,0.85,0.08,0x4A3020),0,0.55,1.0));
+  g.add(at(box(0.4,0.4,0.06,0xFFB86B),0.7,0.95,1.0)); // warm window
+  g.add(at(cyl(0.14,0.5,0x8A8F92),0.7,2.15,-0.4)); // chimney
+  const steam=[];for(let i=0;i<3;i++){const st=at(sph(0.22,0xFFFFFF,{transparent:true,opacity:0.3}),0.7,2.5,-0.4);g.add(st);steam.push(st);}
+  g.userData.steam=steam;
+  g.add(at(cyl(0.5,0.35,0x9A6B42,true),1.5,0.2,0.9)); // hot tub barrel
+  g.add(at(cyl(0.42,0.08,0x8FD6C4),1.5,0.42,0.9));
+  return g;}
+function makeOasisBar(){const g=grp();
+  g.add(at(cyl(1.9,0.15,0xE8D4A0,true),0,0.07,0)); // sand pad
+  g.add(at(box(2.0,0.85,0.9,0xC98A4B),0,0.45,0.3)); // counter
+  g.add(at(box(2.2,0.1,1.1,0xE0A85C),0,0.92,0.3));
+  for(const x of[-0.9,0.9])g.add(at(cyl(0.07,1.9,0x9A7448),x,0.95,-0.35));
+  g.add(at(box(2.3,0.12,1.2,0x3EA06B),0,1.95,-0.35)); // palm-leaf roof
+  g.add(at(box(2.0,0.1,1.0,0x2F8A58),0,2.06,-0.35));
+  g.add(at(sph(0.14,0xF25C6E,true),-0.5,1.02,0.35)); // drinks
+  g.add(at(sph(0.12,0xFFCF6B,true),0.4,1.0,0.35));
+  g.add(at(cyl(0.04,0.3,0xFFFFFF),0.4,1.2,0.35)); // straw
+  const p=makePalm();p.scale.setScalar(0.55);p.position.set(1.6,0,-0.6);g.add(p);
+  return g;}
+function makeTikiBar(){const g=grp();
+  g.add(at(cyl(2.0,0.14,0xF2E3B2,true),0,0.07,0));
+  g.add(at(box(2.2,0.9,0.9,0x8A5E3A),0,0.5,0.2));
+  g.add(at(box(2.4,0.12,1.1,0xB98A54),0,1.0,0.2));
+  for(const x of[-1.0,1.0])g.add(at(cyl(0.08,2.0,0x6B4A2E),x,1.0,-0.3));
+  const rf=mk(GEO.cone4,0xC9A05C);rf.scale.set(2.0,1.0,2.0);rf.rotation.y=Math.PI/4;rf.position.set(0,2.4,-0.1);g.add(rf);
+  const rf2=mk(GEO.cone4,0xB8904C);rf2.scale.set(1.5,0.7,1.5);rf2.rotation.y=Math.PI/4;rf2.position.set(0,2.95,-0.1);g.add(rf2);
+  // tiki mask
+  g.add(at(box(0.4,0.7,0.3,0x7A4A2E),-1.5,0.75,0.5));
+  g.add(at(box(0.26,0.1,0.06,0xFFCF6B),-1.5,0.9,0.66));
+  g.add(at(box(0.26,0.1,0.06,0xFFCF6B),-1.5,0.62,0.66));
+  g.add(at(cone(0.16,0.4,0xE0653F),-1.5,1.3,0.5)); // torch flame
+  g.add(at(sph(0.13,0xF25C8E,true),0.5,1.1,0.4)); // cocktail
+  return g;}
+function makeSkiLift(){const g=grp();
+  g.add(at(box(3.4,0.16,2.0,0xEAF2F5),0,0.08,0)); // snow pad
+  for(const x of[-1.3,1.3]){
+    g.add(at(cyl(0.12,2.8,0x8A8F92),x,1.4,0));
+    g.add(at(box(0.7,0.12,0.12,0x8A8F92),x,2.8,0));}
+  g.add(at(box(2.9,0.05,0.05,0x39424E),0,2.86,-0.25)); // cable
+  g.add(at(box(2.9,0.05,0.05,0x39424E),0,2.86,0.25));
+  // chair
+  const ch=grp();
+  ch.add(at(box(0.06,0.5,0.06,0x39424E),0,2.6,0.25));
+  ch.add(at(box(0.7,0.08,0.45,0xE0653F),0,2.3,0.25));
+  ch.add(at(box(0.7,0.4,0.08,0xE0653F),0,2.5,0.45));
+  g.add(ch);g.userData.chair=ch;
+  g.add(at(box(0.9,0.9,0.9,0xC0563F),1.3,0.55,0.6)); // lift hut
+  const hr=mk(GEO.cone4,0xEDE3D0);hr.scale.set(0.85,0.5,0.85);hr.rotation.y=Math.PI/4;hr.position.set(1.3,1.25,0.6);g.add(hr);
+  return g;}
+Object.assign(BUILDERS,{sauna:makeSauna,oasis:makeOasisBar,tiki:makeTikiBar,skilift:makeSkiLift});
+
+/* ==================== tier trim ==================== */
+const TIER_FLAG=[null,0xD4DCE2,0xFFCF6B,0xFF5C6E];
+function addTierTrim(g,tier,r){
+  if(!tier)return g;
+  g.scale.multiplyScalar(1+tier*0.085);
+  const px=r*0.62,pz=r*0.62;
+  g.add(at(cyl(0.045,1.7,0x8A8078),px,0.85,pz));
+  const f=box(0.6,0.32,0.04,TIER_FLAG[tier]);
+  f.position.set(px+0.32,1.5,pz);g.add(f);g.userData.flag=f;
+  if(tier>=2){ // gold base trim
+    const ring=mk(GEO.cyl,0xFFCF6B);ring.scale.set(r*0.92,0.08,r*0.92);ring.position.y=0.05;
+    ring.castShadow=false;g.add(ring);}
+  if(tier>=3){ // floating star
+    const st=sph(0.2,0xFFD86B);st.position.set(0,r*1.9+1.2,0);g.add(st);g.userData.tstar=st;}
+  return g;
+}
+
+/* == 2B: game logic == */
+"use strict";
+/* ==================== biomes ==================== */
+const BIOMES=[
+ {key:"forest",name:"Pinehollow Forest",em:"🌲",ground:0x6FA352,meadow:[0x7BB05C,0x679B4C],
+  lake:0x4FB3DC,rim:0xD9C99A,sky:["#8FC7E8","#BFE3F0","#E8F5EC"],fog:0xBFE0EF,
+  res:{ic:"🪵",name:"logs"},tree:"pine",excl:"sauna",chopVerb:"Chop",flowers:true},
+ {key:"desert",name:"Sunspire Dunes",em:"🏜️",ground:0xE2BE7E,meadow:[0xEBCB90,0xD6AE68],
+  lake:0x3FB8B0,rim:0xC9A05C,sky:["#FFC98C","#FFE2B8","#FFF4DC"],fog:0xF2DCB2,
+  res:{ic:"🌵",name:"cactus fruit"},tree:"cactus",excl:"oasis",chopVerb:"Harvest",flowers:false},
+ {key:"tropic",name:"Coral Cove",em:"🏝️",ground:0x8FD07A,meadow:[0xA4DD8E,0x7CC468],
+  lake:0x2FC8D8,rim:0xF2E3B2,sky:["#7FD4E8","#B8ECF2","#EFFBF0"],fog:0xC6EFEC,
+  res:{ic:"🥥",name:"coconuts"},tree:"palm",excl:"tiki",chopVerb:"Harvest",flowers:true},
+ {key:"alpine",name:"Frostpeak Heights",em:"🏔️",ground:0xE6EFF2,meadow:[0xDCEAF0,0xF2F9FB],
+  lake:0x9AD6E8,rim:0xC8D8DC,sky:["#A8CBE8","#D2E6F2","#F4FAFF"],fog:0xDCEDF5,
+  res:{ic:"🧊",name:"frost timber"},tree:"spruce",excl:"skilift",chopVerb:"Chop",flowers:false},
+];
+
+/* ==================== catalog: lines × 4 tiers ==================== */
+const LINES=[
+ // ---- stays ----
+ {id:"tent",tab:"stay",ic:"⛺",builder:"tent",r:1.7,beds:1,c:10,inc:0.5,star:1,
+  names:["Campsite Tent","Glamping Tent","Safari Tent","Royal Pavilion"],
+  desc:"Canvas comfort under the stars."},
+ {id:"cabin",tab:"stay",ic:"🛖",builder:"cabin",r:1.9,beds:2,c:150,inc:5,star:2,
+  names:["Log Cabin","Deluxe Cabin","Chalet","Grand Chalet"],
+  desc:"Honest timber, cozy nights."},
+ {id:"cottage",tab:"stay",ic:"🏡",builder:"cottage",r:2.1,beds:3,c:900,inc:22,star:3,
+  names:["Cottage","Garden Villa","Manor","Lakeview Palace"],
+  desc:"Whitewashed walls, happy guests."},
+ {id:"treehouse",tab:"stay",ic:"🌳",builder:"treehouse",r:2.0,beds:4,c:4500,inc:85,star:5,
+  names:["Treehouse","Canopy Suite","Skyhouse","Cloud Loft"],
+  desc:"Rooms with a view. And squirrels."},
+ {id:"lodge",tab:"stay",ic:"🏕️",builder:"lodge",r:2.8,beds:6,c:22000,inc:350,star:8,
+  names:["Lakeside Lodge","Grand Lodge","Summit Lodge","Imperial Lodge"],
+  desc:"Fireplace included, marshmallows extra."},
+ {id:"hotel",tab:"stay",ic:"🏨",builder:"hotel",r:3.2,beds:12,c:110000,inc:1500,star:13,
+  names:["Pine Hotel","Resort Tower","Five-Star Tower","WonderResort"],
+  desc:"All the stars, visible at night."},
+ // ---- amenities ----
+ {id:"campfire",tab:"amenity",ic:"🔥",builder:"campfire",r:1.3,c:40,inc:1.2,star:1,
+  names:["Campfire","Fire Pit","Bonfire Circle","Festival Blaze"],
+  desc:"Guests gather round. Morale up."},
+ {id:"garden",tab:"amenity",ic:"🌷",builder:"garden",r:1.7,c:300,inc:7,star:2,
+  names:["Flower Garden","Botanical Garden","Zen Garden","Wonder Garden"],
+  desc:"Every garden adds +2% to ALL income."},
+ {id:"cafe",tab:"amenity",ic:"☕",builder:"cafe",r:2.3,c:2500,inc:80,star:4,
+  names:["Forest Café","Restaurant","Fine Dining","Skyline Dining"],
+  desc:"Pinecone lattes. Guests spend more."},
+ {id:"pool",tab:"amenity",ic:"🏊",builder:"pool",r:3.6,c:9000,inc:260,star:6,
+  names:["Swimming Pool","Infinity Pool","Lagoon Pool","Water Park"],
+  desc:"Splashy centerpiece with umbrellas."},
+ {id:"spring",tab:"amenity",ic:"♨️",builder:"spring",r:3.2,c:45000,inc:1000,star:9,
+  names:["Hot Spring","Mineral Spring","Crystal Spring","Emerald Springs"],
+  desc:"Steam rises, so does revenue."},
+ // ---- biome exclusives ----
+ {id:"sauna",tab:"amenity",ic:"🧖",builder:"sauna",r:2.2,c:1200,inc:45,star:3,biome:0,
+  names:["Sauna","Premium Sauna","Lux Sauna","Mega Sauna"],
+  desc:"Forest specialty — hot cedar and cold plunges."},
+ {id:"oasis",tab:"amenity",ic:"🍹",builder:"oasis",r:2.2,c:1200,inc:45,star:3,biome:1,
+  names:["Oasis Bar","Shaded Oasis Bar","Mirage Lounge","Grand Mirage"],
+  desc:"Desert specialty — cold drinks, palm shade."},
+ {id:"tiki",tab:"amenity",ic:"🗿",builder:"tiki",r:2.2,c:1200,inc:45,star:3,biome:2,
+  names:["Tiki Bar","Beach Club","Surf Lounge","Paradise Club"],
+  desc:"Cove specialty — torches and tropical drinks."},
+ {id:"skilift",tab:"amenity",ic:"🚡",builder:"skilift",r:2.4,c:1200,inc:45,star:3,biome:3,
+  names:["Ski Lift","Twin Lift","Gondola","Summit Express"],
+  desc:"Frostpeak specialty — up the powder we go."},
+ // ---- animal housing (3 tiers) ----
+ {id:"coop",tab:"animal",ic:"🛖",builder:"coop",r:1.7,c:200,inc:0,star:1,animal:"chicken",caps:[4,9,16],tiers:3,
+  names:["Chicken Coop","Grand Coop","Cluckingham Palace"],
+  desc:"Roomy roosts for the flock."},
+ {id:"pen",tab:"animal",ic:"🚧",builder:"pen",r:3.1,c:1200,inc:0,star:2,animal:"sheep",caps:[4,9,16],tiers:3,
+  names:["Sheep Pen","Meadow Pen","Wool Empire"],
+  desc:"Fenced meadows for wool-bearers."},
+ {id:"barn",tab:"animal",ic:"🏚️",builder:"barn",r:3.1,c:6000,inc:0,star:3,animal:"cow",caps:[3,7,12],tiers:3,
+  names:["Dairy Barn","Mega Barn","Moo Manor"],
+  desc:"Big red barns, bigger milk money."},
+];
+const T_COST=10,T_INC=6.5,T_BEDS=2,T_STAR=2.2;
+const DEFS={};
+LINES.forEach(L=>{
+  const tiers=L.tiers||4;
+  for(let t=0;t<tiers;t++){
+    DEFS[L.id+"_"+t]={line:L.id,tier:t,tab:L.tab,ic:L.ic,builder:L.builder,r:L.r,
+      name:L.names[t],desc:L.desc,biome:L.biome,
+      c:Math.round(L.c*Math.pow(T_COST,t)),
+      inc:L.inc*Math.pow(T_INC,t),
+      beds:L.beds?Math.round(L.beds*Math.pow(T_BEDS,t)):0,
+      star:Math.max(1,Math.round(L.star*Math.pow(T_STAR,t))),
+      animal:L.animal,cap:L.caps?L.caps[t]:0};
+  }
+});
 const ANIMALS={
-  chicken:{ic:"🐔",name:"Chicken",desc:"Lays eggs worth 🪙 every so often.",c:60,val:9,time:18,home:"coop"},
-  sheep:  {ic:"🐑",name:"Sheep",desc:"Grows wool — shear for a tidy sum.",c:420,val:70,time:32,home:"pen"},
-  cow:    {ic:"🐮",name:"Cow",desc:"Fresh milk, premium prices.",c:2400,val:360,time:48,home:"barn"},
+  chicken:{ic:"🐔",name:"Chicken",desc:"Lays eggs worth 🪙 every so often.",c:60,val:9,time:18},
+  sheep:  {ic:"🐑",name:"Sheep",desc:"Grows wool — shear for a tidy sum.",c:420,val:70,time:32},
+  cow:    {ic:"🐮",name:"Cow",desc:"Fresh milk, premium prices.",c:2400,val:360,time:48},
 };
 const CREW={
-  lumberjack:{ic:"🪓",name:"Lumberjack",desc:"Roams the forest chopping wood for you.",c:100,g:1.4,max:10},
-  merchant:  {ic:"🛒",name:"Timber Merchant",desc:"Works the market stall — auto-sells 4 🪵/s each.",c:250,g:1.45,max:6},
+  lumberjack:{ic:"🪓",name:"Harvest Crew",desc:"Roams the wilds gathering resources for you.",c:100,g:1.4,max:10},
+  merchant:  {ic:"🛒",name:"Market Trader",desc:"Works the stall — auto-sells 4/s each.",c:250,g:1.45,max:6},
   keeper:    {ic:"🧹",name:"Housekeeper",desc:"Keeps guests happy: +12% building income each.",c:1500,g:1.7,max:5},
   ranch:     {ic:"🧑‍🌾",name:"Ranch Hand",desc:"Auto-collects eggs, wool and milk.",c:1200,g:1.8,max:3},
 };
 const UPGRADES=[
-  {id:"axe1",ic:"🪓",name:"Sharpened Axe",desc:"Chop +100% wood per swing.",c:80,t:"axe",m:2},
-  {id:"mkt1",ic:"🏪",name:"Better Stall",desc:"Wood sells for ×2.",c:200,t:"price",m:2},
+  {id:"axe1",ic:"🪓",name:"Sharpened Axe",desc:"Gather +100% per swing.",c:80,t:"axe",m:2},
+  {id:"mkt1",ic:"🏪",name:"Better Stall",desc:"Resources sell for ×2.",c:200,t:"price",m:2},
   {id:"rod1",ic:"🎣",name:"Good Bait",desc:"Fish are worth ×2.",c:350,t:"fish",m:2},
-  {id:"axe2",ic:"⚒️",name:"Steel Axe",desc:"Chop power ×2.",c:900,t:"axe",m:2},
+  {id:"axe2",ic:"⚒️",name:"Steel Axe",desc:"Gather power ×2.",c:900,t:"axe",m:2},
   {id:"crew1",ic:"☕",name:"Coffee Breaks",desc:"All workers ×2 speed.",c:2500,t:"crew",m:2},
   {id:"inc1",ic:"📣",name:"Resort Marketing",desc:"All building income ×2.",c:6000,t:"inc",m:2},
   {id:"an1",ic:"🌾",name:"Premium Feed",desc:"Animals produce ×2 faster.",c:9000,t:"animal",m:2},
-  {id:"mkt2",ic:"📜",name:"Timber Contract",desc:"Wood sells for ×2.",c:15000,t:"price",m:2},
-  {id:"axe3",ic:"🪚",name:"Chainsaw",desc:"Chop power ×3.",c:40000,t:"axe",m:3},
+  {id:"mkt2",ic:"📜",name:"Trade Contract",desc:"Resources sell for ×2.",c:15000,t:"price",m:2},
+  {id:"axe3",ic:"🪚",name:"Chainsaw",desc:"Gather power ×3.",c:40000,t:"axe",m:3},
   {id:"inc2",ic:"🌟",name:"Rave Reviews",desc:"All building income ×2.",c:120000,t:"inc",m:2},
   {id:"rod2",ic:"🐟",name:"Golden Lure",desc:"Fish are worth ×3.",c:200000,t:"fish",m:3},
   {id:"crew2",ic:"🤖",name:"Power Tools",desc:"All workers ×2 speed.",c:450000,t:"crew",m:2},
+  {id:"an2",ic:"🎵",name:"Barn Concerts",desc:"Animals produce ×2 faster.",c:900000,t:"animal",m:2},
   {id:"inc3",ic:"🎆",name:"World Famous",desc:"All building income ×3.",c:2e6,t:"inc",m:3},
+  {id:"inc4",ic:"👑",name:"Royal Visit",desc:"All building income ×3.",c:1.5e7,t:"inc",m:3},
 ];
-const STAR_T=[0,6,18,45,100,190];
-const REPNAMES=["humble camp","cozy retreat","woodland inn","forest resort","luxury escape","★ legend ★"];
+const STAR_T=[0,10,30,80,200,430];
+const REPNAMES=["humble camp","cozy retreat","charming inn","fine resort","luxury escape","★ LEGEND ★"];
 
 /* ==================== state ==================== */
 const fresh=()=>({coins:0,wood:0,totE:0,b:[],an:{chicken:0,sheep:0,cow:0},
-  crew:{lumberjack:0,merchant:0,keeper:0,ranch:0},u:{},lastSeen:now(),intro:0,fees:0});
+  crew:{lumberjack:0,merchant:0,keeper:0,ranch:0},u:{},biome:0,deeds:0,
+  lastSeen:now(),intro:0,fees:0});
 let S=fresh();
 let memoryOnly=false;
-const KEY="pinehollow3d_v1";
+const KEY="pinehollow3d_v2";
 function save(silent){S.lastSeen=now();
   try{localStorage.setItem(KEY,JSON.stringify(S));if(!silent)toast("Game saved 💾");}
   catch(e){memoryOnly=true;if(!silent)toast("Saving unavailable in this preview — deploy to keep progress");}}
-function load(){try{const r=localStorage.getItem(KEY);if(!r)return false;
+function load(){try{
+    let r=localStorage.getItem(KEY);
+    if(!r){ // migrate v1 coins if present
+      const old=localStorage.getItem("pinehollow3d_v1");
+      if(old){const d=JSON.parse(old);S.coins=d.coins||0;S.totE=d.totE||0;return false;}
+      return false;}
     const d=JSON.parse(r);S=Object.assign(fresh(),d);
     S.an=Object.assign(fresh().an,d.an||{});S.crew=Object.assign(fresh().crew,d.crew||{});
-    S.b=Array.isArray(d.b)?d.b:[];return true;}
+    S.b=(Array.isArray(d.b)?d.b:[]).filter(rec=>DEFS[rec.t]);
+    return true;}
   catch(e){memoryOnly=true;return false;}}
 
+const BIOME=BIOMES[(S_pre_biome())%BIOMES.length];
+function S_pre_biome(){ // peek biome before full load order — resolved below
+  try{const r=localStorage.getItem(KEY);if(r)return (JSON.parse(r).biome||0);}catch(e){}
+  return 0;}
+
 const upM=t=>UPGRADES.reduce((m,u)=>S.u[u.id]&&u.t===t?m*u.m:m,1);
+const deedM=()=>Math.pow(2.5,S.deeds||0);
 const axePower=()=>1*upM("axe");
-const woodPrice=()=>1*upM("price");
+const woodPrice=()=>1*upM("price")*deedM();
 const crewM=()=>upM("crew");
-const gardens=()=>S.b.filter(b=>b.t==="garden").length;
+const gardens=()=>S.b.filter(b=>DEFS[b.t].line==="garden").length;
 const starPts=()=>S.b.reduce((s,b)=>s+(DEFS[b.t].star||0),0);
 function stars(){let s=0;for(let i=1;i<STAR_T.length;i++)if(starPts()>=STAR_T[i])s=i;return s;}
 const beds=()=>S.b.reduce((s,b)=>s+(DEFS[b.t].beds||0),0);
-function incomeMult(){return (1+gardens()*0.02)*upM("inc")*(1+S.crew.keeper*0.12)*(1+stars()*0.25);}
+function incomeMult(){return (1+gardens()*0.02)*upM("inc")*(1+S.crew.keeper*0.12)*(1+stars()*0.25)*deedM();}
 function passiveIncome(){return S.b.reduce((s,b)=>s+DEFS[b.t].inc,0)*incomeMult();}
 function bCount(t){return S.b.filter(b=>b.t===t).length;}
-function bCost(t){const d=DEFS[t],n=bCount(t),g=1.32;
-  return {c:Math.round(d.c*Math.pow(g,n)),w:Math.round(d.w*Math.pow(g,n))};}
+function bCost(t){const d=DEFS[t];return Math.round(d.c*Math.pow(1.30,bCount(t)));}
 function crewCost(k){const d=CREW[k];return Math.round(d.c*Math.pow(d.g,S.crew[k]));}
 function anCap(a){return S.b.filter(b=>DEFS[b.t].animal===a).reduce((s,b)=>s+DEFS[b.t].cap,0);}
 function anCost(a){return Math.round(ANIMALS[a].c*Math.pow(1.35,S.an[a]));}
 function earn(c){S.coins+=c;S.totE+=c;}
+const canPrestige=()=>stars()>=5;
 
 /* ==================== world ==================== */
 const WORLD_R=90;
@@ -723,63 +945,55 @@ const MARKET={x:9,z:30};
 const GATE={x:0,z:48};
 const DOCK={x:LAKE.x+LAKE.r*0.72,z:LAKE.z+LAKE.r*0.55};
 
-const ground=mk(GEO.circle,0x6FA352);ground.geometry=new THREE.CircleGeometry(WORLD_R+45,52);
+setSky(BIOME.sky[0],BIOME.sky[1],BIOME.sky[2]);
+scene.fog.color.setHex(BIOME.fog);
+
+const ground=mk(GEO.circle,BIOME.ground);ground.geometry=new THREE.CircleGeometry(WORLD_R+45,52);
 ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;ground.castShadow=false;scene.add(ground);
-// meadow patches
-for(let i=0;i<9;i++){const p=mk(GEO.circle,i%2?0x7BB05C:0x679B4C);
-  p.geometry=GEO.circle;p.scale.setScalar(rand(5,12));p.rotation.x=-Math.PI/2;
+for(let i=0;i<9;i++){const p=mk(GEO.circle,BIOME.meadow[i%2]);
+  p.scale.setScalar(rand(5,12));p.rotation.x=-Math.PI/2;
   p.position.set(rand(-70,70),0.02+i*0.001,rand(-70,70));p.castShadow=false;scene.add(p);}
-// lake
-const lakeM=mk(GEO.circle,0x4FB3DC,{transparent:true,opacity:0.95});
+const lakeM=mk(GEO.circle,BIOME.lake,{transparent:true,opacity:0.95});
 lakeM.scale.setScalar(LAKE.r);lakeM.rotation.x=-Math.PI/2;lakeM.position.set(LAKE.x,0.06,LAKE.z);
 lakeM.castShadow=false;scene.add(lakeM);
-const lakeRim=mk(GEO.circle,0xD9C99A);lakeRim.scale.setScalar(LAKE.r+1.2);
+const lakeRim=mk(GEO.circle,BIOME.rim);lakeRim.scale.setScalar(LAKE.r+1.2);
 lakeRim.rotation.x=-Math.PI/2;lakeRim.position.set(LAKE.x,0.04,LAKE.z);lakeRim.castShadow=false;scene.add(lakeRim);
-// dock
 const dock=grp();
 dock.add(at(box(1.6,0.14,4.6,0x9A6B42),0,0.42,0));
 for(const z of[-2,0,2])for(const x of[-0.7,0.7])dock.add(at(cyl(0.09,0.55,0x6B4A2E),x,0.22,z));
-dock.position.set(DOCK.x,0,DOCK.z);
-dock.lookAt(LAKE.x,0,LAKE.z);scene.add(dock);
+dock.position.set(DOCK.x,0,DOCK.z);dock.lookAt(LAKE.x,0,LAKE.z);scene.add(dock);
 const FISH_SPOT={x:DOCK.x+(LAKE.x-DOCK.x)*0.18,z:DOCK.z+(LAKE.z-DOCK.z)*0.18};
-// path: gate → resort center
-(function(){const seg=14;for(let i=0;i<=seg;i++){const t=i/seg;
-  const p=mk(GEO.circle,0xC9B283);p.scale.setScalar(1.6);p.rotation.x=-Math.PI/2;p.castShadow=false;
+(function(){const seg=12;for(let i=0;i<=seg;i++){const t=i/seg;
+  const p=mk(GEO.circle,BIOME.rim);p.scale.setScalar(1.6);p.rotation.x=-Math.PI/2;p.castShadow=false;
   p.position.set(lerp(GATE.x,0,t)+Math.sin(t*5)*1.2,0.03,lerp(GATE.z,8,t));scene.add(p);}})();
-// gate
 const gate=grp();
 gate.add(at(box(0.3,3.4,0.3,0x8A5E3A),-2.4,1.7,0));gate.add(at(box(0.3,3.4,0.3,0x8A5E3A),2.4,1.7,0));
 gate.add(at(box(5.6,0.5,0.4,0x9A6B42),0,3.4,0));
 gate.add(at(box(3.6,0.7,0.1,0x6B4A2E),0,3.4,0.22));
 gate.position.set(GATE.x,0,GATE.z);scene.add(gate);
-// market stall
 const market=grp();
 market.add(at(box(2.4,0.9,1.1,0x9A6B42),0,0.45,0));
 market.add(at(box(2.6,0.1,1.3,0xC98A4B),0,0.95,0));
 for(const x of[-1.1,1.1])market.add(at(cyl(0.07,2.1,0x6B4A2E),x,1.05,-0.4));
 for(let i=0;i<6;i++)market.add(at(box(0.44,0.4,0.15,i%2?0xE0653F:0xFFCF6B),-1.1+i*0.44,2.15,-0.4));
-const lg=grp();for(let i=0;i<3;i++)lg.add(at(cyl(0.12,0.8,0x8A5E3A,true),0,0.12+i*0.16,0));
-lg.children.forEach(c=>c.rotation.z=Math.PI/2);lg.position.set(0.6,1.0,0.1);market.add(lg);
 market.position.set(MARKET.x,0,MARKET.z);market.rotation.y=-0.5;scene.add(market);
-// campfire near spawn? no — clean start.
 
-// obstacles registry {x,z,r,tree?}
 const obstacles=[];
 function addOb(x,z,r,tag){const o={x,z,r,tag};obstacles.push(o);return o;}
 addOb(MARKET.x,MARKET.z,1.8,"market");
 addOb(GATE.x-2.4,GATE.z,0.5);addOb(GATE.x+2.4,GATE.z,0.5);
 function inLake(x,z,pad){return Math.hypot(x-LAKE.x,z-LAKE.z)<LAKE.r+(pad||0);}
 function onDock(x,z){const dx=x-DOCK.x,dz=z-DOCK.z;
-  // rotate into dock frame
   const a=Math.atan2(LAKE.x-DOCK.x,LAKE.z-DOCK.z);
   const lx=dx*Math.cos(-a)-dz*Math.sin(-a),lz=dx*Math.sin(-a)+dz*Math.cos(-a);
   return Math.abs(lx)<1.0&&lz>-2.6&&lz<2.6;}
 
 /* trees */
+const makeBiomeTree=TREE_BUILDERS[BIOME.tree];
 const trees=[];
-function plantTree(x,z){const g=makeTree();g.position.set(x,0,z);scene.add(g);
+function plantTree(x,z){const g=makeBiomeTree();g.position.set(x,0,z);scene.add(g);
   const ob=addOb(x,z,0.75,"tree");
-  const t={g,x,z,hp:5,maxhp:5,state:"grown",respawn:0,ob};g.userData.tree=t;trees.push(t);return t;}
+  const t={g,x,z,hp:5,maxhp:5,state:"grown",respawn:0,ob,shake:0};g.userData.tree=t;trees.push(t);return t;}
 (function(){let tries=0,planted=0;
   while(planted<64&&tries<900){tries++;
     const a=rand(0,6.283),d=rand(16,WORLD_R-4);
@@ -787,32 +1001,30 @@ function plantTree(x,z){const g=makeTree();g.position.set(x,0,z);scene.add(g);
     if(inLake(x,z,4))continue;
     if(Math.hypot(x-MARKET.x,z-MARKET.z)<6)continue;
     if(Math.hypot(x-GATE.x,z-GATE.z)<8)continue;
-    if(Math.abs(x)<5&&z>6&&z<GATE.z)continue; // keep path clear
+    if(Math.abs(x)<5&&z>6&&z<GATE.z)continue;
     if(obstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.r+2.2))continue;
     plantTree(x,z);planted++;}
 })();
-/* bushes (berry forage) */
 const bushes=[];
 for(let i=0;i<16;i++){const a=rand(0,6.283),d=rand(14,WORLD_R-8);
   const x=Math.cos(a)*d,z=Math.sin(a)*d;
   if(inLake(x,z,3)||obstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.r+1.6))continue;
   const g=makeBush();g.position.set(x,0,z);scene.add(g);
-  const berries=[];for(let b=0;b<4;b++){const s=sph(0.07,0xD64560);
+  const berries=[];for(let b=0;b<4;b++){const s=sph(0.07,BIOME.key==="desert"?0xFFCF6B:0xD64560);
     s.position.set(rand(-0.4,0.4),rand(0.3,0.6),rand(-0.35,0.35));g.add(s);berries.push(s);}
   bushes.push({g,x,z,ready:true,cool:0,berries});addOb(x,z,0.6);}
-/* rocks & flowers (décor) */
 for(let i=0;i<12;i++){const a=rand(0,6.283),d=rand(20,WORLD_R-6);
   const x=Math.cos(a)*d,z=Math.sin(a)*d;
   if(inLake(x,z,3))continue;const r=makeRock();r.position.set(x,0,z);scene.add(r);addOb(x,z,0.8);}
-for(let i=0;i<6;i++){const a=rand(0,6.283),d=rand(18,60);
+if(BIOME.flowers)for(let i=0;i<6;i++){const a=rand(0,6.283),d=rand(18,60);
   const x=Math.cos(a)*d,z=Math.sin(a)*d;if(inLake(x,z,4))continue;
   const f=makeFlowerPatch();f.position.set(x,0,z);f.castShadow=false;scene.add(f);}
-/* distant ring of backdrop trees */
 for(let i=0;i<46;i++){const a=i/46*6.283+rand(-0.05,0.05),d=WORLD_R+rand(3,26);
-  const g=makeTree();g.position.set(Math.cos(a)*d,0,Math.sin(a)*d);g.scale.multiplyScalar(rand(1.1,1.6));scene.add(g);}
+  const g=makeBiomeTree();g.position.set(Math.cos(a)*d,0,Math.sin(a)*d);
+  g.scale.multiplyScalar(rand(1.1,1.6));scene.add(g);}
 
-/* ==================== buildings (instances) ==================== */
-const built=[]; // {rec (S.b entry), g, def}
+/* ==================== buildings ==================== */
+const built=[];
 function collides(x,z,r,ignore){
   if(inLake(x,z,r+0.5))return true;
   if(Math.hypot(x-GATE.x,z-GATE.z)<5+r)return true;
@@ -829,39 +1041,40 @@ function clearTreesAt(x,z,r){
       const i=obstacles.indexOf(t.ob);if(i>=0)obstacles.splice(i,1);}}
 }
 function findSpot(r){
-  // spiral out from resort heart
   for(let ring=0;ring<26;ring++){
     const rad=4+ring*3.4;const steps=Math.max(6,ring*5);
     const off=rand(0,6.283);
     for(let i=0;i<steps;i++){const a=off+i/steps*6.283;
       const x=Math.cos(a)*rad,z=Math.sin(a)*rad*0.92+4;
-      if(Math.abs(x)<3.4&&z>4&&z<GATE.z)continue; // keep main path
+      if(Math.abs(x)<3.4&&z>4&&z<GATE.z)continue;
       if(!collides(x,z,r,null))return{x,z};}}
   return null;
 }
-function spawnBuilding(rec,fresh){
+function spawnBuilding(rec,isNew){
   const def=DEFS[rec.t];
-  const g=BUILDERS[rec.t]();
+  const g=BUILDERS[def.builder]();
+  addTierTrim(g,def.tier,def.r);
   g.position.set(rec.x,0,rec.z);g.rotation.y=rec.r||0;
-  g.traverse(o=>{o.userData.bRef=null;});
   scene.add(g);
   const inst={rec,g,def,produce:0,pTimer:rand(0,3)};
   g.userData.inst=inst;
   built.push(inst);
   clearTreesAt(rec.x,rec.z,def.r);
-  if(fresh){g.scale.setScalar(0.01);inst.popT=0;}
+  if(isNew){g.userData.baseScale=g.scale.x;g.scale.setScalar(0.01);inst.popT=0;}
+  else g.userData.baseScale=g.scale.x;
   return inst;
 }
 function buyBuilding(t){
   const cost=bCost(t);
-  if(S.coins<cost.c||S.wood<cost.w)return;
+  if(S.coins<cost)return;
+  if(built.length>=64){toast("Resort is packed! Sell or rearrange first ↔️");return;}
   const def=DEFS[t];
   const spot=findSpot(def.r);
   if(!spot){toast("No room left — rearrange or sell something! ↔️");return;}
-  S.coins-=cost.c;S.wood-=cost.w;
+  S.coins-=cost;
   const rec={t,x:spot.x,z:spot.z,r:rand(-0.4,0.4)};
   S.b.push(rec);
-  const inst=spawnBuilding(rec,true);
+  spawnBuilding(rec,true);
   toast(def.ic+" "+def.name+" built!");
   confettiAt(spot.x,spot.z);
   rebuildCards();updateHUD(true);
@@ -870,25 +1083,23 @@ function sellBuilding(inst){
   const idx=S.b.indexOf(inst.rec);if(idx>=0)S.b.splice(idx,1);
   const bi=built.indexOf(inst);if(bi>=0)built.splice(bi,1);
   scene.remove(inst.g);
-  const refund=Math.round(DEFS[inst.rec.t].c*Math.pow(1.32,bCount(inst.rec.t))*0.5);
+  const refund=Math.round(DEFS[inst.rec.t].c*Math.pow(1.30,bCount(inst.rec.t))*0.5);
   earn(refund);
   toast("Sold for 🪙 "+fmt(refund));
   rebuildCards();updateHUD(true);
 }
 
 /* ==================== animals ==================== */
-const animals=[]; // {kind,g,home:inst,angle,dist,t,speed,ready}
+const animals=[];
 function homesFor(kind){return built.filter(b=>b.def.animal===kind);}
 function spawnAnimal(kind){
   const homes=homesFor(kind);if(!homes.length)return null;
-  // pick least-crowded home
   const load=h=>animals.filter(a=>a.home===h).length;
-  homes.sort((a,b)=>load(a)-load(b));
+  homes.sort((a,b)=>load(a)/(a.def.cap||1)-load(b)/(b.def.cap||1));
   const home=homes[0];
   const g=ANIMAL_BUILDERS[kind]();
   scene.add(g);
-  const a={kind,g,home,angle:rand(0,6.283),dist:rand(0.6,1.8),t:rand(0,4),
-    speed:rand(0.25,0.5),tx:0,tz:0,wait:0};
+  const a={kind,g,home,t:rand(0,4),speed:rand(0.25,0.5),tx:0,tz:0,wait:0};
   pickAnimalTarget(a);
   g.position.set(a.tx,0,a.tz);
   animals.push(a);return a;
@@ -901,7 +1112,7 @@ function pickAnimalTarget(a){
 }
 function buyAnimal(kind){
   const cap=anCap(kind);
-  if(S.an[kind]>=cap){toast("Build more housing first! "+DEFS[ANIMALS[kind].home].ic);return;}
+  if(S.an[kind]>=cap){toast("Build more housing first!");return;}
   const cost=anCost(kind);
   if(S.coins<cost)return;
   S.coins-=cost;S.an[kind]++;
@@ -910,29 +1121,25 @@ function buyAnimal(kind){
   rebuildCards();updateHUD(true);
 }
 
-/* ==================== NPC people ==================== */
-const npcs=[]; // workers + guests
+/* ==================== NPCs ==================== */
+const npcs=[];
+function shortAngle(a,b){let d=(b-a)%6.283;if(d>3.1416)d-=6.283;if(d<-3.1416)d+=6.283;return d;}
 function walkerStep(n,dt,speed){
   const dx=n.tx-n.g.position.x,dz=n.tz-n.g.position.z;
   const d=Math.hypot(dx,dz);
   if(d<0.25)return true;
-  const vx=dx/d*speed*dt,vz=dz/d*speed*dt;
-  n.g.position.x+=vx;n.g.position.z+=vz;
+  n.g.position.x+=dx/d*speed*dt;n.g.position.z+=dz/d*speed*dt;
   const ty=Math.atan2(dx,dz);
-  n.g.rotation.y=damp(n.g.rotation.y,n.g.rotation.y+shortAngle(n.g.rotation.y,ty),12,dt);
+  n.g.rotation.y+=shortAngle(n.g.rotation.y,ty)*Math.min(1,dt*10);
   animChar(n.g,speed,dt);
   n.g.position.y=n.g.userData.bob||0;
   return false;
 }
-function shortAngle(a,b){let d=(b-a)%6.283;if(d>3.1416)d-=6.283;if(d<-3.1416)d+=6.283;return d;}
-
-/* ---- lumberjacks ---- */
-const jackTints=[0xC0563F,0x8A5E3A,0x4E6E3A];
 function spawnJack(){
   const g=makeChar({shirt:0xC0563F,pants:0x39424E,skin:SKINS[Math.random()*SKINS.length|0],hat:0xE7AE45});
   g.position.set(MARKET.x+rand(-3,3),0,MARKET.z+rand(-3,3));
   scene.add(g);
-  const n={kind:"jack",g,state:"seek",tx:0,tz:0,tree:null,chopT:0,workT:0};
+  const n={kind:"jack",g,state:"seek",tx:0,tz:0,tree:null,chopT:0,workT:0,wait:0};
   npcs.push(n);return n;
 }
 function jackTick(n,dt){
@@ -944,7 +1151,7 @@ function jackTick(n,dt){
     for(const t of alive){const d=Math.hypot(t.x-n.g.position.x,t.z-n.g.position.z);
       if(d<bd){bd=d;best=t;}}
     n.tree=best;best.claimed=true;
-    n.tx=best.x+rand(-1,1)*0.4+1.1;n.tz=best.z+0.4;n.state="walk";
+    n.tx=best.x+1.1;n.tz=best.z+0.4;n.state="walk";
   }else if(n.state==="walk"){
     if(!n.tree||n.tree.cleared||n.tree.state!=="grown"){if(n.tree)n.tree.claimed=false;n.tree=null;n.state="seek";return;}
     if(walkerStep(n,dt,sp)){n.state="chop";n.workT=0;
@@ -957,24 +1164,22 @@ function jackTick(n,dt){
     if(n.chopT>=per){n.chopT=0;
       S.wood+=axePower()*0.6;
       shakeTree(n.tree);
-      if(Math.random()<0.25)float3D("+🪵",n.tree.x,2.6,n.tree.z,"#D69A5C");
+      if(Math.random()<0.25)float3D("+"+BIOME.res.ic,n.tree.x,2.6,n.tree.z,"#D69A5C");
       damageTree(n.tree,0.35);}
     if(n.workT>7){n.tree.claimed=false;n.tree=null;n.state="seek";}
-  }else{ // idle
+  }else{
     animChar(n.g,0,dt);
     n.wait-=dt;if(n.wait<=0)n.state="seek";
   }
 }
-/* ---- merchants: stand at market, sell wood ---- */
 function spawnMerchant(i){
   const g=makeChar({shirt:0xE7AE45,pants:0x5A3A22,hair:0x3A2E28});
-  const a=-0.5+ i*0.8;
+  const a=-0.5+i*0.8;
   g.position.set(MARKET.x+Math.cos(a)*2.4,0,MARKET.z+Math.sin(a)*2.4);
   g.rotation.y=Math.atan2(MARKET.x-g.position.x,MARKET.z-g.position.z);
   scene.add(g);
   const n={kind:"merchant",g};npcs.push(n);return n;
 }
-/* ---- housekeepers: wander building to building ---- */
 function spawnKeeper(){
   const g=makeChar({shirt:0x8AB4F0,pants:0x39312B,hair:0x6B4A2E,pack:0xEDE3D0});
   g.position.set(rand(-4,4),0,rand(2,8));scene.add(g);
@@ -990,7 +1195,6 @@ function keeperTick(n,dt){
     if(walkerStep(n,dt,sp)){n.state="wait";n.wait=rand(2,4);}
   }else{animChar(n.g,0,dt);n.wait-=dt;if(n.wait<=0)n.state="pick";}
 }
-/* ---- ranch hands: visit animal buildings, collect ---- */
 function spawnRanch(){
   const g=makeChar({shirt:0x6E9A4E,pants:0x5A4632,hat:0xC98A4B});
   g.position.set(rand(-4,4),0,rand(2,8));scene.add(g);
@@ -1010,7 +1214,6 @@ function ranchTick(n,dt){
       n.state="wait";n.wait=1.2;}
   }else{animChar(n.g,0,dt);n.wait-=dt;if(n.wait<=0)n.state="pick";}
 }
-/* ---- guests ---- */
 const GUEST_SHIRTS=[0xF2A9C7,0x8AB4F0,0xF2C14E,0x9AD98F,0xE0653F,0xC9A7E8,0x59C6E8];
 function spawnGuest(){
   const g=makeChar({shirt:GUEST_SHIRTS[Math.random()*GUEST_SHIRTS.length|0],
@@ -1029,7 +1232,7 @@ function guestTick(n,dt){
   const sp=3.0;
   if(n.state==="arrive"){
     if(walkerStep(n,dt,sp)){
-      if(n.home){ // check-in! pay fee
+      if(n.home){
         const fee=Math.max(2,n.home.def.inc*6)*incomeMult()*0.5;
         earn(fee);S.fees+=fee;
         float3D("+🪙"+fmt(fee),n.home.rec.x,3,n.home.rec.z,"#FFCF6B");
@@ -1065,7 +1268,7 @@ function syncCrewNPCs(){
   const want={jack:Math.min(S.crew.lumberjack,10),merchant:Math.min(S.crew.merchant,6),
     keeper:Math.min(S.crew.keeper,5),ranch:Math.min(S.crew.ranch,3)};
   for(const k in want){
-    let have=npcs.filter(n=>n.kind===(k==="jack"?"jack":k)).length;
+    let have=npcs.filter(n=>n.kind===k).length;
     while(have<want[k]){
       if(k==="jack")spawnJack();else if(k==="merchant")spawnMerchant(have);
       else if(k==="keeper")spawnKeeper();else spawnRanch();
@@ -1083,7 +1286,6 @@ function treeTick(t,dt){
   if(t.cleared)return;
   if(t.shake>0){t.shake-=dt;
     t.g.rotation.z=Math.sin(now()/28)*0.05*(t.shake/0.28);}
-  else t.g.rotation.z=0;
   if(t.state==="fall"){
     t.fallT+=dt;
     t.g.rotation.z=Math.min(1.5,t.fallT*2.4);
@@ -1115,7 +1317,7 @@ function produceTick(dt){
 function collectProduce(b,byPlayer){
   const cnt=Math.floor(b.produce);if(cnt<1)return;
   b.produce-=cnt;
-  const val=cnt*ANIMALS[b.def.animal].val*(byPlayer?1.25:1);
+  const val=cnt*ANIMALS[b.def.animal].val*deedM()*(byPlayer?1.25:1);
   earn(val);
   float3D("+🪙"+fmt(val),b.rec.x,2.6,b.rec.z,"#FFCF6B");
   if(byPlayer)toast(ANIMALS[b.def.animal].ic+" Collected "+cnt+" — 🪙"+fmt(val)+"!");
@@ -1124,7 +1326,7 @@ function collectProduce(b,byPlayer){
 /* ==================== player ==================== */
 const player=makeChar({shirt:0x4E86C4,pants:0x39424E,hair:0x3A2E28,pack:0xC0563F});
 player.position.set(2,0,16);scene.add(player);
-const pstate={vx:0,vz:0,speed:5.4,acting:false,actT:0,fishT:0,mode:null};
+const pstate={speed:5.6,acting:false,actT:0,fishT:0,mode:null};
 
 let camYaw=0.4,camPitch=0.42,camDist=13;
 function updateCamera(dt){
@@ -1140,18 +1342,20 @@ function updateCamera(dt){
   sun.target.position.copy(player.position);
 }
 function movePlayer(dt){
-  let mx=0,mz=0;
-  if(keys.w||keys.ArrowUp)mz-=1; if(keys.s||keys.ArrowDown)mz+=1;
-  if(keys.a||keys.ArrowLeft)mx-=1; if(keys.d||keys.ArrowRight)mx+=1;
-  mx+=stick.x;mz+=stick.y;
-  const mag=Math.hypot(mx,mz);
+  let ix=0,iz=0;
+  if(keys.w||keys.ArrowUp)iz-=1; if(keys.s||keys.ArrowDown)iz+=1;
+  if(keys.a||keys.ArrowLeft)ix-=1; if(keys.d||keys.ArrowRight)ix+=1;
+  ix+=stick.x;iz+=stick.y;
+  const mag=Math.hypot(ix,iz);
   let sp=0;
   if(mag>0.08&&!pstate.acting){
     const m=Math.min(1,mag);
-    const ang=Math.atan2(mx,mz)+camYaw+Math.PI;
-    const vx=Math.sin(ang)*pstate.speed*m,vz=Math.cos(ang)*pstate.speed*m;
+    const ux=ix/mag,uz=iz/mag;
+    // camera-relative: screen-up = away from camera, screen-right = camera right
+    const cy=camYaw;
+    const vx=( ux*Math.cos(cy)+uz*Math.sin(cy))*pstate.speed*m;
+    const vz=(-ux*Math.sin(cy)+uz*Math.cos(cy))*pstate.speed*m;
     let nx=player.position.x+vx*dt,nz=player.position.z+vz*dt;
-    // collisions
     for(const o of obstacles){const d=Math.hypot(nx-o.x,nz-o.z);const min=o.r+0.45;
       if(d<min&&d>0.001){nx=o.x+(nx-o.x)/d*min;nz=o.z+(nz-o.z)/d*min;}}
     for(const b of built){const d=Math.hypot(nx-b.rec.x,nz-b.rec.z);const min=b.def.r+0.45;
@@ -1171,30 +1375,25 @@ function movePlayer(dt){
 }
 
 /* ==================== interaction ==================== */
-let focus=null; // {type,ref,label,em}
+let focus=null;
 function findFocus(){
   const px=player.position.x,pz=player.position.z;
-  // market
   if(Math.hypot(px-MARKET.x,pz-MARKET.z)<3.4)
-    return {type:"market",label:"Sell "+fmt(Math.floor(S.wood))+" 🪵 → 🪙"+fmt(Math.floor(S.wood)*woodPrice()),em:"💰"};
-  // dock fishing
+    return {type:"market",label:"Sell "+fmt(Math.floor(S.wood))+" "+BIOME.res.ic+" → 🪙"+fmt(Math.floor(S.wood)*woodPrice()),em:"💰"};
   if(Math.hypot(px-DOCK.x,pz-DOCK.z)<3.2)
     return {type:"fish",label:"Fish (hold)",em:"🎣"};
-  // produce buildings
   let best=null,bd=1e9;
   for(const b of built){if(!b.def.animal||b.produce<1)continue;
     const d=Math.hypot(px-b.rec.x,pz-b.rec.z);
     if(d<b.def.r+1.6&&d<bd){bd=d;best={type:"collect",ref:b,
       label:"Collect "+Math.floor(b.produce)+" "+ANIMALS[b.def.animal].ic,em:"🧺"};}}
   if(best)return best;
-  // bushes
   for(const bu of bushes){if(!bu.ready)continue;
     if(Math.hypot(px-bu.x,pz-bu.z)<1.8)
-      return {type:"berry",ref:bu,label:"Pick berries",em:"🫐"};}
-  // trees
+      return {type:"berry",ref:bu,label:"Forage",em:"🫐"};}
   for(const t of trees){if(t.cleared||t.state!=="grown")continue;
-    const d=Math.hypot(px-t.x,pz-t.z);
-    if(d<2.1)return {type:"tree",ref:t,label:"Chop (hold)",em:"🪓"};}
+    if(Math.hypot(px-t.x,pz-t.z)<2.1)
+      return {type:"tree",ref:t,label:BIOME.chopVerb+" (hold)",em:"🪓"};}
   return null;
 }
 function doAction(dt){
@@ -1207,14 +1406,14 @@ function doAction(dt){
     if(pstate.actT>=0.42){pstate.actT=0;
       const w=axePower();S.wood+=w;
       shakeTree(t);damageTree(t,1);
-      float3D("+"+fmt(w)+" 🪵",t.x,2.8,t.z,"#D69A5C");
+      float3D("+"+fmt(w)+" "+BIOME.res.ic,t.x,2.8,t.z,"#D69A5C");
     }
   }else if(focus.type==="fish"){
     pstate.mode="fish";
     player.rotation.y=Math.atan2(LAKE.x-player.position.x,LAKE.z-player.position.z);
     pstate.fishT+=dt;
     if(pstate.fishT>=2.2){pstate.fishT=0;
-      const v=Math.round(rand(6,14))*upM("fish")*(1+stars()*0.3);
+      const v=Math.round(rand(6,14))*upM("fish")*(1+stars()*0.3)*deedM();
       earn(v);
       float3D("🐟 +🪙"+fmt(v),FISH_SPOT.x,1.4,FISH_SPOT.z,"#59C6E8");
       splash();}
@@ -1224,16 +1423,16 @@ function tapAction(){
   if(!focus)return;
   if(focus.type==="market"){
     const n=Math.floor(S.wood);
-    if(n<1){toast("No wood yet — go chop a tree! 🪓");return;}
+    if(n<1){toast("Nothing to sell — go gather! 🪓");return;}
     const v=n*woodPrice();S.wood-=n;earn(v);
     float3D("+🪙"+fmt(v),MARKET.x,3,MARKET.z,"#FFCF6B");
-    toast("Sold "+fmt(n)+" 🪵 for 🪙"+fmt(v)+"!");
+    toast("Sold "+fmt(n)+" "+BIOME.res.ic+" for 🪙"+fmt(v)+"!");
   }else if(focus.type==="collect"){collectProduce(focus.ref,true);}
   else if(focus.type==="berry"){
     const bu=focus.ref;bu.ready=false;bu.cool=40;
     bu.berries.forEach(b=>b.visible=false);
-    const v=Math.round(rand(3,7))*(1+stars()*0.4);
-    earn(v);float3D("🫐 +🪙"+fmt(v),bu.x,1.5,bu.z,"#C9A7E8");
+    const v=Math.round(rand(3,7))*(1+stars()*0.4)*deedM();
+    earn(v);float3D("+🪙"+fmt(v),bu.x,1.5,bu.z,"#C9A7E8");
   }
 }
 function splash(){
@@ -1289,8 +1488,6 @@ addEventListener("keyup",e=>{
   keys[e.key.length===1?e.key.toLowerCase():e.key]=false;
   if(e.key==="e"||e.key==="E"){pstate.acting=false;pstate.actT=0;pstate.fishT=0;pstate.mode=null;}
 });
-
-/* joystick */
 const stick={x:0,y:0,id:null};
 const stickEl=$("stick"),knob=stickEl.querySelector(".knob");
 function stickMove(t){
@@ -1306,15 +1503,13 @@ stickEl.addEventListener("pointermove",e=>{if(e.pointerId===stick.id)stickMove(e
 function stickEnd(e){if(e.pointerId===stick.id){stick.id=null;stick.x=0;stick.y=0;knob.style.transform="";}}
 stickEl.addEventListener("pointerup",stickEnd);stickEl.addEventListener("pointercancel",stickEnd);
 
-/* camera drag + tap on canvas */
-let camPt=null,camMoved=0,camStart=0,pinch=null;
+let camPt=null,camMoved=0,camStart=0,pinch=null,camLX=0,camLY=0;
+const activePts={};
 canvas.addEventListener("pointerdown",e=>{
   if(camPt===null){camPt=e.pointerId;camMoved=0;camStart=now();
     canvas.setPointerCapture(e.pointerId);camLX=e.clientX;camLY=e.clientY;}
   else if(pinch===null){pinch={id2:e.pointerId,d:0};}
 });
-let camLX=0,camLY=0;
-const activePts={};
 canvas.addEventListener("pointermove",e=>{
   activePts[e.pointerId]={x:e.clientX,y:e.clientY};
   if(pinch&&camPt!==null){
@@ -1341,17 +1536,14 @@ function canvasUp(e){
 canvas.addEventListener("pointerup",canvasUp);
 canvas.addEventListener("pointercancel",canvasUp);
 canvas.addEventListener("wheel",e=>{camDist=clamp(camDist+e.deltaY*0.012,7,26);e.preventDefault();},{passive:false});
-
-/* action button */
 const actBtn=$("actionBtn");
 actBtn.addEventListener("pointerdown",e=>{pstate.acting=true;tapAction();e.preventDefault();});
 function actEnd(){pstate.acting=false;pstate.actT=0;pstate.fishT=0;pstate.mode=null;}
 actBtn.addEventListener("pointerup",actEnd);actBtn.addEventListener("pointercancel",actEnd);
-actBtn.addEventListener("lostpointercapture",actEnd);
 $("zoomIn").onclick=()=>camDist=clamp(camDist-2.5,7,26);
 $("zoomOut").onclick=()=>camDist=clamp(camDist+2.5,7,26);
 
-/* ==================== move / rearrange mode ==================== */
+/* ==================== move mode ==================== */
 let moveMode=false,moveSel=null;
 const selRing=mk(GEO.circle,0xFFCF6B,{transparent:true,opacity:0.55});
 selRing.rotation.x=-Math.PI/2;selRing.visible=false;selRing.castShadow=false;scene.add(selRing);
@@ -1372,7 +1564,6 @@ function handleTap(x,y){
   ndc.set(x/innerWidth*2-1,-(y/innerHeight)*2+1);
   ray.setFromCamera(ndc,camera);
   if(moveMode){
-    // pick building first
     const meshes=[];built.forEach(b=>b.g.traverse(o=>{if(o.isMesh)meshes.push(o);}));
     const hit=ray.intersectObjects(meshes,false)[0];
     if(hit){let g=hit.object;while(g&&!g.userData.inst)g=g.parent;
@@ -1410,31 +1601,40 @@ document.querySelectorAll("#tabs .tab").forEach(t=>{
 let cardUpdaters=[];
 function cardEl(html,onclick){const b=document.createElement("button");b.className="card";
   b.innerHTML=html;b.onclick=onclick;return b;}
+const TIER_TAGS=["","◆ Premium","◆◆ Lux","◆◆◆ Mega"];
 function rebuildCards(){
   cardUpdaters=[];
   const wrap=$("cards");wrap.innerHTML="";
+  const bi=S.biome%BIOMES.length;
   if(curTab==="stay"||curTab==="amenity"||curTab==="animal"){
-    const list=Object.keys(DEFS).filter(k=>DEFS[k].tab===curTab);
-    // progressive reveal: show owned + next two locked
-    let lockShown=0;
-    list.forEach(k=>{
-      const d=DEFS[k];const owned=bCount(k);
-      if(!owned){lockShown++;if(lockShown>2)return;}
-      const card=cardEl(`<span class="ic">${d.ic}</span>
-        <span><span class="nm">${d.name}</span><span class="ds">${d.desc}</span><span class="ow"></span></span>
-        <span class="rt"><span class="cost"></span><span class="gain"></span></span>`,
-        ()=>buyBuilding(k));
-      wrap.appendChild(card);
-      const ow=card.querySelector(".ow"),co=card.querySelector(".cost"),ga=card.querySelector(".gain");
-      const upd=()=>{
-        const cost=bCost(k),o=bCount(k);
-        ow.style.display=o?"":"none";
-        if(o)ow.textContent=`Built ${o}`+(d.inc?` · +${fmt(o*d.inc*incomeMult())}/s`:"")+(d.beds?` · ${o*d.beds} beds`:"")+(d.cap?` · houses ${o*d.cap} ${ANIMALS[d.animal].ic}`:"");
-        co.innerHTML=`🪙${fmt(cost.c)}`+(cost.w?` <span class="w">🪵${fmt(cost.w)}</span>`:"");
-        ga.textContent=(d.inc?`+${fmt(d.inc*incomeMult())}/s`:``)+(d.star?` · +${d.star}⭐pts`:"");
-        card.disabled=S.coins<cost.c||S.wood<cost.w;
-      };
-      upd();cardUpdaters.push(upd);
+    const lines=LINES.filter(L=>L.tab===curTab&&(L.biome===undefined||L.biome===bi));
+    let lockedLines=0;
+    lines.forEach(L=>{
+      const tiers=L.tiers||4;
+      const anyOwned=bCount(L.id+"_0")>0;
+      if(!anyOwned){lockedLines++;if(lockedLines>2&&L.biome===undefined)return;}
+      for(let t=0;t<tiers;t++){
+        const id=L.id+"_"+t;
+        if(t>0&&bCount(L.id+"_"+(t-1))===0)break; // next tier unlocks after owning previous
+        const d=DEFS[id];
+        const card=cardEl(`<span class="ic">${d.ic}</span>
+          <span><span class="nm">${d.name}${t?` <small style="color:var(--gold);font-size:.68rem">${TIER_TAGS[t]}</small>`:""}</span>
+          <span class="ds">${d.desc}</span><span class="ow"></span></span>
+          <span class="rt"><span class="cost"></span><span class="gain"></span></span>`,
+          ()=>buyBuilding(id));
+        wrap.appendChild(card);
+        const ow=card.querySelector(".ow"),co=card.querySelector(".cost"),ga=card.querySelector(".gain");
+        const upd=()=>{
+          const o=bCount(id);
+          ow.style.display=o?"":"none";
+          if(o)ow.textContent=`Built ${o}`+(d.inc?` · +${fmt(o*d.inc*incomeMult())}/s`:"")
+            +(d.beds?` · ${o*d.beds} beds`:"")+(d.cap?` · houses ${o*d.cap} ${ANIMALS[d.animal].ic}`:"");
+          co.textContent="🪙"+fmt(bCost(id));
+          ga.textContent=(d.inc?`+${fmt(d.inc*incomeMult())}/s`:``)+` · +${d.star}⭐`;
+          card.disabled=S.coins<bCost(id);
+        };
+        upd();cardUpdaters.push(upd);
+      }
     });
     if(curTab==="animal"){
       Object.keys(ANIMALS).forEach(k=>{
@@ -1448,24 +1648,24 @@ function rebuildCards(){
         const upd=()=>{
           const cap=anCap(k);
           ow.style.display=S.an[k]?"":"none";
-          ow.textContent=`${S.an[k]}/${cap} owned — 🪙${fmt(a.val)} per ${k==="chicken"?"egg":k==="sheep"?"shear":"milking"}`;
+          ow.textContent=`${S.an[k]}/${cap} owned — 🪙${fmt(a.val*deedM())} per ${k==="chicken"?"egg":k==="sheep"?"shear":"milking"}`;
           co.textContent="🪙"+fmt(anCost(k));
           ga.textContent=`every ~${Math.round(a.time/upM("animal"))}s`;
           card.disabled=S.coins<anCost(k)||S.an[k]>=cap;
         };
         upd();cardUpdaters.push(upd);
       });
-      wrap.appendChild(hintEl("Animals wander their pens and stack up produce — walk over and press the green button to collect (+25% bonus), or hire a Ranch Hand."));
+      wrap.appendChild(hintEl("Animals wander their pens and stack up produce — press the green button nearby to collect (+25% bonus), or hire a Ranch Hand."));
     }
-    if(curTab==="stay")wrap.appendChild(hintEl("Beds bring guests through the gate — each check-in pays a fee, plus steady income per building. Stars multiply everything."));
-    if(curTab==="amenity")wrap.appendChild(hintEl("Amenities earn coins and add ⭐ points. Every Flower Garden also boosts ALL income by +2%."));
+    if(curTab==="stay")wrap.appendChild(hintEl("Own a building to unlock its next tier — all the way to ◆◆◆ Mega. Beds bring paying guests; ⭐ points raise your star rating."));
+    if(curTab==="amenity")wrap.appendChild(hintEl(`${BIOMES[bi].em} ${BIOMES[bi].name} exclusive: the ${LINES.find(L=>L.biome===bi).names[0]} line. Every Flower Garden also boosts ALL income by +2%.`));
   }
   if(curTab==="crew"){
     Object.keys(CREW).forEach(k=>{
       const c=CREW[k];
       const card=cardEl(`<span class="ic">${c.ic}</span>
         <span><span class="nm">${c.name}</span><span class="ds">${c.desc}</span><span class="ow"></span></span>
-        <span class="rt"><span class="cost"></span><span class="gain"></span></span>`,
+        <span class="rt"><span class="cost"></span></span>`,
         ()=>{const cost=crewCost(k);
           if(S.crew[k]>=c.max||S.coins<cost)return;
           S.coins-=cost;S.crew[k]++;syncCrewNPCs();
@@ -1480,11 +1680,20 @@ function rebuildCards(){
       };
       upd();cardUpdaters.push(upd);
     });
-    wrap.appendChild(hintEl("Your crew works even while the game is closed (up to 8 hours). Watch them roam the resort!"));
+    wrap.appendChild(hintEl("Your crew works even while the game is closed (up to 8 hours)."));
   }
   if(curTab==="upg"){
+    if(canPrestige()){
+      const card=cardEl(`<span class="ic">🏆</span>
+        <span><span class="nm">SELL THE RESORT</span>
+        <span class="ds">Five stars achieved! Sell everything, gain a permanent ×2.5 income Deed, and start fresh in a brand-new land.</span></span>
+        <span class="rt"><span class="cost" style="color:var(--gold)">READY</span></span>`,
+        openPrestige);
+      card.style.borderColor="var(--gold)";
+      wrap.appendChild(card);
+    }
     const rest=UPGRADES.filter(u=>!S.u[u.id]).slice(0,5);
-    if(!rest.length)wrap.appendChild(hintEl("Every upgrade purchased. Pinehollow is unstoppable 🌲👑"));
+    if(!rest.length&&!canPrestige())wrap.appendChild(hintEl("Every upgrade purchased — now push for ★★★★★ to sell the resort!"));
     rest.forEach(u=>{
       const card=cardEl(`<span class="ic">${u.ic}</span>
         <span><span class="nm">${u.name}</span><span class="ds">${u.desc}</span></span>
@@ -1502,6 +1711,27 @@ function rebuildCards(){
 }
 function hintEl(t){const p=document.createElement("p");p.className="hint";p.textContent=t;return p;}
 
+/* ==================== prestige ==================== */
+let softReload=()=>location.reload();
+function openPrestige(){
+  const nb=BIOMES[(S.biome+1)%BIOMES.length];
+  $("prestigeNext").textContent=nb.em+" "+nb.name;
+  $("prestigeMult").textContent="×"+fmt(Math.pow(2.5,S.deeds+1))+" total income";
+  $("prestigeModal").classList.add("show");
+  closeSheet();
+}
+$("prestigeCancel").onclick=()=>$("prestigeModal").classList.remove("show");
+$("prestigeGo").onclick=()=>{doPrestige();};
+$("prestigeChip").onclick=openPrestige;
+function doPrestige(){
+  if(!canPrestige())return;
+  S.deeds++;S.biome++;
+  S.b=[];S.an=fresh().an;S.crew=fresh().crew;S.u={};
+  S.coins=0;S.wood=0;S.fees=0;S.intro=1;
+  save(true);
+  softReload();
+}
+
 /* ==================== HUD ==================== */
 let hudT=0;
 function updateHUD(force){
@@ -1514,20 +1744,21 @@ function updateHUD(force){
   $("starRow").textContent="★".repeat(st)+"☆".repeat(5-st);
   $("hRep").textContent=REPNAMES[st];
   $("sCoin").textContent="🪙 "+fmt(S.coins);
-  $("sWood").textContent="🪵 "+fmt(S.wood);
-  const avail=UPGRADES.filter(u=>!S.u[u.id]&&S.coins>=u.c).length;
+  $("sWood").textContent=BIOME.res.ic+" "+fmt(S.wood);
+  $("prestigeChip").classList.toggle("hidden",!canPrestige());
+  $("deedStat").classList.toggle("hidden",!S.deeds);
+  if(S.deeds){$("hDeed").textContent="🏆"+S.deeds;$("hDeedS").textContent="×"+fmt(deedM())+" income";}
+  const avail=UPGRADES.filter(u=>!S.u[u.id]&&S.coins>=u.c).length+(canPrestige()?1:0);
   const bd=$("upgBdg");bd.hidden=!avail;bd.textContent=avail;
   cardUpdaters.forEach(f=>f());
 }
-
-/* prompt + action button */
 function updatePrompt(){
   const p=$("prompt");
   if(focus&&!moveMode){
     $("promptTxt").textContent=focus.label;
     p.classList.add("on");
     $("actEm").textContent=focus.em;
-    $("actLab").textContent=focus.type==="tree"?"CHOP":focus.type==="fish"?"FISH":
+    $("actLab").textContent=focus.type==="tree"?BIOME.chopVerb.toUpperCase():focus.type==="fish"?"FISH":
       focus.type==="market"?"SELL":focus.type==="collect"?"COLLECT":"PICK";
     actBtn.classList.remove("dim");
   }else{
@@ -1542,14 +1773,15 @@ let toastT;
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");
   clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2100);}
 $("menuBtn").onclick=()=>{$("menuStats").textContent=
-  `Total earned 🪙${fmt(S.totE)} · Buildings: ${S.b.length} · ⭐ points: ${starPts()}`;
+  `${BIOME.em} ${BIOME.name} · Total earned 🪙${fmt(S.totE)} · Buildings ${S.b.length} · ⭐pts ${starPts()}`+
+  (S.deeds?` · Deeds 🏆${S.deeds} (×${fmt(deedM())})`:"");
   $("menuModal").classList.add("show");};
 $("menuClose").onclick=()=>$("menuModal").classList.remove("show");
 $("mSave").onclick=()=>{save(false);};
 $("mHelp").onclick=()=>{$("menuModal").classList.remove("show");$("introModal").classList.add("show");};
-$("mReset").onclick=()=>{if(confirm("Burn it all down and start over?")){
+$("mReset").onclick=()=>{if(confirm("Burn it all down and start over? (Deeds are lost too!)")){
   try{localStorage.removeItem(KEY);}catch(e){}
-  location.reload();}};
+  softReload();}};
 $("mExport").onclick=()=>{
   const code=btoa(unescape(encodeURIComponent(JSON.stringify(S))));
   if(navigator.clipboard)navigator.clipboard.writeText(code).then(()=>toast("Save copied 📤"),()=>prompt("Copy your save:",code));
@@ -1557,7 +1789,7 @@ $("mExport").onclick=()=>{
 $("mImport").onclick=()=>{
   const code=prompt("Paste your save code:");if(!code)return;
   try{const d=JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
-    localStorage.setItem(KEY,JSON.stringify(d));location.reload();}
+    localStorage.setItem(KEY,JSON.stringify(d));softReload();}
   catch(e){toast("That code didn't work 😕");}};
 $("introOk").onclick=()=>{$("introModal").classList.remove("show");S.intro=1;save(true);};
 $("offOk").onclick=()=>$("offModal").classList.remove("show");
@@ -1571,23 +1803,19 @@ function applyOffline(){
   let wood=S.crew.lumberjack*axePower()*0.66*Math.min(crewM(),4)*secs;
   const sold=Math.min(wood,S.crew.merchant*4*crewM()*secs);
   coins+=sold*woodPrice();wood-=sold;
-  // animals produce, ranch hands collect
-  let animalCoins=0;
-  for(const k in ANIMALS){
+  if(S.crew.ranch>0)for(const k in ANIMALS){
     const n=Math.min(S.an[k],anCap(k));
     if(!n)continue;
-    const cycles=secs/(ANIMALS[k].time/upM("animal"))*n;
-    if(S.crew.ranch>0)animalCoins+=cycles*ANIMALS[k].val;
+    coins+=secs/(ANIMALS[k].time/upM("animal"))*n*ANIMALS[k].val*deedM();
   }
-  coins+=animalCoins;
   if(coins<1&&wood<1)return;
   earn(coins);S.wood+=wood;
-  $("offTxt").textContent=`You were away ${fmtTime(away)}. The crew kept Pinehollow humming.`;
-  $("offHaul").textContent=`+🪙${fmt(coins)}`+(wood>=1?`  +🪵${fmt(wood)}`:"");
+  $("offTxt").textContent=`You were away ${fmtTime(away)}. The crew kept ${BIOME.name} humming.`;
+  $("offHaul").textContent=`+🪙${fmt(coins)}`+(wood>=1?`  +${BIOME.res.ic}${fmt(wood)}`:"");
   $("offModal").classList.add("show");
 }
 
-/* ==================== guest spawning ==================== */
+/* ==================== guest spawn ==================== */
 let guestT=0;
 function guestSpawnTick(dt){
   const b=beds();if(!b)return;
@@ -1599,9 +1827,8 @@ function guestSpawnTick(dt){
   if(guestT>=interval){guestT=0;spawnGuest();}
 }
 
-/* ==================== ambient anim ==================== */
+/* ==================== ambient ==================== */
 function ambientTick(dt,t){
-  // trees sway (near player only for perf)
   const px=player.position.x,pz=player.position.z;
   for(const tr of trees){if(tr.cleared)continue;
     treeTick(tr,dt);
@@ -1612,15 +1839,18 @@ function ambientTick(dt,t){
     if(bu.cool<=0){bu.ready=true;bu.berries.forEach(b=>b.visible=true);}}}
   for(const b of built){
     if(b.popT!=null){b.popT+=dt;const s=Math.min(1,b.popT*2.2);
-      b.g.scale.setScalar(0.01+ (1-Math.pow(1-s,3))*0.99);
+      b.g.scale.setScalar((0.01+(1-Math.pow(1-s,3))*0.99)*(b.g.userData.baseScale||1));
       if(s>=1)b.popT=null;}
     const ud=b.g.userData;
     if(ud.flame)ud.flame.scale.setScalar(0.9+Math.sin(t*0.012+b.rec.x)*0.18);
-    if(ud.water)ud.water.position.y=(b.rec.t==="pool"?0.5:0.35)+Math.sin(t*0.002+b.rec.z)*0.02;
-    if(ud.steam)ud.steam.forEach((s,i)=>{s.position.y=1+((t*0.0006+i*0.3)%1)*1.6;
+    if(ud.water)ud.water.position.y=(DEFS[b.rec.t].builder==="pool"?0.5:0.35)+Math.sin(t*0.002+b.rec.z)*0.02;
+    if(ud.steam)ud.steam.forEach((s,i)=>{s.position.y=(s.position.y0||(s.position.y0=s.position.y))+((t*0.0006+i*0.3)%1)*1.4;
       s.material.opacity=0.3*(1-((t*0.0006+i*0.3)%1));});
     if(ud.swim)ud.swim.forEach((s,i)=>{const a=t*0.0008+i*3;
       s.position.x=Math.cos(a)*1.2;s.position.z=Math.sin(a*0.8)*1.2;});
+    if(ud.chair)ud.chair.position.x=Math.sin(t*0.0012+b.rec.z)*1.1;
+    if(ud.tstar){ud.tstar.position.y+=Math.sin(t*0.003)*0.002;ud.tstar.rotation.y+=dt;}
+    if(ud.flag)ud.flag.rotation.y=Math.sin(t*0.004+b.rec.x)*0.3;
   }
   lakeM.position.y=0.06+Math.sin(t*0.0015)*0.015;
   for(const a of animals){
@@ -1637,14 +1867,19 @@ function ambientTick(dt,t){
 }
 
 /* ==================== boot ==================== */
-const had=load();
+load();
 S.b.forEach(rec=>spawnBuilding(rec,false));
 for(const k in ANIMALS){const n=Math.min(S.an[k],anCap(k));for(let i=0;i<n;i++)spawnAnimal(k);}
 syncCrewNPCs();
 applyOffline();
+// biome labels in UI
+$("hudBiome").textContent=BIOME.em;
+$("resIcHud").textContent=BIOME.res.ic;
+$("sheetTitle").textContent="🏗️ Build "+BIOME.name.split(" ")[0];
 rebuildCards();
 updateHUD(true);
 if(!S.intro)$("introModal").classList.add("show");
+else if(S.deeds&&S.b.length===0)setTimeout(()=>toast(BIOME.em+" Welcome to "+BIOME.name+"! Fresh land, ×"+fmt(deedM())+" income."),800);
 if(memoryOnly)setTimeout(()=>toast("Preview mode: saving needs a real browser tab (deploy it!)"),1500);
 $("loader").style.display="none";
 
@@ -1655,7 +1890,7 @@ addEventListener("beforeunload",()=>save(true));
 document.addEventListener("visibilitychange",()=>{if(document.hidden)save(true);});
 
 /* ==================== main loop ==================== */
-let last=performance.now(),saveT=0,econT=0;
+let last=performance.now(),saveT=0;
 function frame(t){
   requestAnimationFrame(frame);
   let dt=(t-last)/1000;last=t;
@@ -1667,7 +1902,6 @@ function frame(t){
   focus=findFocus();
   updatePrompt();
 
-  // economy
   earn(passiveIncome()*dt);
   if(S.crew.merchant&&S.wood>=1){
     const sold=Math.min(S.wood,S.crew.merchant*4*crewM()*dt);
@@ -1675,7 +1909,6 @@ function frame(t){
   produceTick(dt);
   guestSpawnTick(dt);
 
-  // NPCs
   for(let i=npcs.length-1;i>=0;i--){const n=npcs[i];
     if(n.kind==="jack")jackTick(n,dt);
     else if(n.kind==="keeper")keeperTick(n,dt);
