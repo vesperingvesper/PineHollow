@@ -87,6 +87,14 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
   padding:8px 10px;box-shadow:var(--sh);max-width:94vw}
 #movebar .msg{font-size:.8rem;font-weight:700;color:var(--cream);max-width:200px;line-height:1.15}
 #movebar button{border-radius:10px;padding:8px 12px;font-weight:800;font-size:.82rem;border:2px solid var(--line)}
+#furnRow{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 118px);transform:translateX(-50%);
+  z-index:7;display:flex;gap:8px;background:rgba(22,34,27,.9);border:2px solid var(--line);
+  border-radius:14px;padding:8px;max-width:94vw;overflow-x:auto;pointer-events:auto}
+#furnRow button{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px;
+  border-radius:10px;padding:6px 8px;border:2px solid var(--line);background:rgba(46,66,53,.9);color:var(--cream);
+  font-weight:800;font-size:.68rem}
+#furnRow button .fi{font-size:1.25rem}
+#furnRow button:disabled{opacity:.45}
 #moveSell{background:#7a2f2f;color:#ffd9d0;border-color:#a04545}
 #moveDone{background:var(--gold);color:#3a2a06;border-color:#e7ae45}
 
@@ -197,6 +205,7 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
     <div class="stat"><span class="ic">🪙</span><div><div class="v" id="hCoin">0</div><div class="s" id="hCoinS">+0/s</div></div></div>
     <div class="stat"><span class="ic" id="resIcHud">🪵</span><div><div class="v" id="hWood">0</div><div class="s" id="hWoodS">+0/s</div></div></div>
     <div class="stat"><span class="ic">🧑</span><div><div class="v" id="hGuest">0</div><div class="s">guests</div></div></div>
+    <div class="stat"><span class="ic" id="hHapIc">😊</span><div><div class="v" id="hHap">100%</div><div class="s">guest mood</div></div></div>
     <div class="stat"><span class="ic" id="hudBiome">🌲</span><div><div id="starRow">☆☆☆☆☆</div><div class="s" id="hRep">humble camp</div></div></div>
     <div class="stat hidden" id="deedStat"><span class="ic">🏆</span><div><div class="v" id="hDeed">0</div><div class="s" id="hDeedS"></div></div></div>
     <button class="stat hidden" id="prestigeChip" style="border-color:var(--gold);cursor:pointer;animation:glowp 1.6s ease-in-out infinite">
@@ -235,9 +244,12 @@ button{font-family:inherit;color:inherit;border:none;cursor:pointer}
 <!-- Move mode -->
 <div id="movebar" class="hidden">
   <span class="msg" id="moveMsg">Tap a building, then tap a spot to move it.</span>
+  <button id="moveFurnish" class="hidden">🛋️ Furnish</button>
+  <button id="moveExpand" class="hidden">📐 Expand</button>
   <button id="moveSell" class="hidden">Sell</button>
   <button id="moveDone">Done</button>
 </div>
+<div id="furnRow" class="hidden"></div>
 
 <!-- Shop -->
 <div id="sheet">
@@ -929,6 +941,141 @@ function makeGoldBird(){const g=grp();
   tr.position.set(-0.35,0,0);g.add(tr);
   return g;}
 
+/* ==================== cutaway interiors (dollhouse look) ==================== */
+function roomShell(w,d,h,wallC,floorC,backC){const g=grp();
+  g.add(at(box(w,0.18,d,floorC),0,0.09,0));                       // floor slab
+  g.add(at(box(w,h,0.14,wallC),0,h/2+0.1,-d/2+0.07));             // back wall
+  g.add(at(box(0.14,h,d,wallC),-w/2+0.07,h/2+0.1,0));             // side walls
+  g.add(at(box(0.14,h,d,wallC),w/2-0.07,h/2+0.1,0));
+  g.add(at(box(w,h*0.36,0.12,wallC),0,h*0.18+0.1,d/2-0.06));      // low front wall (cutaway)
+  g.add(at(box(w-0.5,d-0.5,0.03,backC).clone(),0,0.2,0));         // rug placeholder replaced below
+  g.children.pop();                                                // (remove placeholder)
+  return g;}
+function bedPiece(w){const b=grp();
+  b.add(at(box(w,0.22,1.5,0x8A5E3A),0,0.22,0));                   // frame
+  b.add(at(box(w-0.08,0.16,1.42,0xF2EEE6),0,0.4,0));              // mattress
+  b.add(at(box(w-0.08,0.1,0.95,0xD5453C),0,0.48,0.22));           // red blanket
+  b.add(at(box(w*0.5,0.12,0.3,0xFFFFFF),0,0.5,-0.52));            // pillow
+  b.add(at(box(w,0.5,0.08,0x8A5E3A),0,0.45,-0.72));               // headboard
+  return b;}
+function rugPiece(w,d,c){const r=box(w,0.03,d,c);r.position.y=0.2;r.castShadow=false;return r;}
+function nightstand(){const n=grp();
+  n.add(at(box(0.4,0.4,0.35,0x9A6B42),0,0.38,0));
+  n.add(at(cyl(0.05,0.22,0x39424E),0,0.68,0));
+  const sh=cone(0.16,0.18,0xFFD98A);sh.material=BMAT(0xFFD98A);sh.position.y=0.84;n.add(sh);
+  return n;}
+function wallArt(c){const a=grp();
+  a.add(at(box(0.42,0.34,0.04,0xE2B33C),0,0,0));
+  a.add(at(box(0.32,0.24,0.05,c),0,0,0.005));
+  return a;}
+function makeCabinRoom(){const g=roomShell(2.5,2.4,1.4,0xA9723F,0x9A6B42,0);
+  const bed=bedPiece(1.1);bed.position.set(-0.55,0.1,-0.35);g.add(bed);
+  g.add(at(rugPiece(1.1,0.9,0x3E7CC0),0.55,0,0.35));
+  const ns=nightstand();ns.position.set(0.85,0.1,-0.7);g.add(ns);
+  const art=wallArt(0x59C6E8);art.position.set(0.4,1.15,-1.1);g.add(art);
+  const rf=mk(GEO.cone4,0x7A4A2E);rf.scale.set(2.1,1.05,2.1);rf.rotation.y=Math.PI/4;rf.position.y=2.05;g.add(rf);
+  g.add(at(box(0.4,0.4,0.06,0x9AD6FF),0,1.05,1.16));               // front window
+  return g;}
+function makeCottageRoom(){const g=roomShell(2.9,2.6,1.6,0xEDE3D0,0xB98A54,0);
+  const bed=bedPiece(1.15);bed.position.set(-0.65,0.1,-0.35);g.add(bed);
+  const bed2=bedPiece(0.85);bed2.position.set(0.7,0.1,-0.45);g.add(bed2);
+  g.add(at(rugPiece(1.4,0.9,0x9E2B33),0,0,0.55));
+  const art=wallArt(0xF2A9C7);art.position.set(0,1.3,-1.2);g.add(art);
+  const rf=mk(GEO.cone4,0xC0563F);rf.scale.set(2.4,1.2,2.4);rf.rotation.y=Math.PI/4;rf.position.y=2.4;g.add(rf);
+  g.add(at(box(0.35,0.55,0.35,0x9A6B42),0.8,2.5,-0.4));            // chimney
+  return g;}
+function makeHotelRooms(){const g=grp();
+  g.add(at(box(4,0.3,3.2,0x8A8078),0,0.15,0));
+  g.add(at(box(4,3.2,0.16,0xF0E6D2),0,1.9,-1.52));                 // back wall
+  g.add(at(box(0.16,3.2,3.2,0xF0E6D2),-1.92,1.9,0));
+  g.add(at(box(0.16,3.2,3.2,0xF0E6D2),1.92,1.9,0));
+  g.add(at(box(4,0.16,3.2,0xF0E6D2),0,1.9,0));                     // floor divider
+  g.add(at(box(0.14,3.2,3.0,0xEDE3D0),0,1.9,0));                   // center wall
+  g.add(at(box(4,0.5,3.4,0xC0563F),0,3.7,0));                      // roof band
+  const rf=mk(GEO.box,0xB04E3A);rf.scale.set(4.2,0.6,1.8);rf.rotation.z=0.35;rf.position.set(-1.0,4.2,0);g.add(rf);
+  const rf2=rf.clone();rf2.rotation.z=-0.35;rf2.position.x=1.0;g.add(rf2);
+  // four cutaway rooms (2 floors × 2 rooms), open front
+  for(let fl=0;fl<2;fl++)for(let cc=0;cc<2;cc++){
+    const rx=cc?1.0:-1.0, ry=0.3+fl*1.6;
+    const bed=bedPiece(0.85);bed.scale.setScalar(0.8);bed.position.set(rx-0.35,ry,-0.5);g.add(bed);
+    g.add(at(rugPiece(0.8,0.6,cc+fl===1?0x3E7CC0:0x9E2B33),rx+0.4,ry-0.18,0.5));
+    const ns=nightstand();ns.scale.setScalar(0.7);ns.position.set(rx+0.55,ry,-0.9);g.add(ns);
+    const art=wallArt(fl?0x8AD98F:0x59C6E8);art.scale.setScalar(0.8);art.position.set(rx,ry+1.0,-1.42);g.add(art);
+  }
+  g.add(at(box(0.9,1.4,0.12,0x7A4A2E),0,0.9,1.63));
+  g.add(at(box(1.6,0.5,0.3,0xE0653F),0,2.0,1.7));
+  g.add(at(box(0.14,2.4,0.14,0xC9A24A),-1.7,1.2,1.8));g.add(at(box(0.14,2.4,0.14,0xC9A24A),1.7,1.2,1.8));
+  g.add(at(sph(0.13,0xFFCF6B),-1.7,2.5,1.8));g.add(at(sph(0.13,0xFFCF6B),1.7,2.5,1.8));
+  // window rows on the sides + back (screenshot-style facade)
+  for(const sx of[-1.99,1.99])for(const z of[-0.9,0,0.9])for(const fy of[1.1,2.7])
+    g.add(at(box(0.06,0.5,0.42,0x9AD6FF),sx,fy,z));
+  for(const wx of[-1.3,-0.45,0.45,1.3])for(const fy of[1.1,2.7])
+    g.add(at(box(0.42,0.5,0.06,0x9AD6FF),wx,fy,-1.59));
+  return g;}
+function cafeChair(c){const ch=grp();
+  ch.add(at(box(0.26,0.06,0.26,c),0,0.28,0));
+  ch.add(at(box(0.26,0.3,0.05,c),0,0.44,-0.11));
+  for(const x of[-0.1,0.1])for(const z of[-0.1,0.1])ch.add(at(box(0.04,0.28,0.04,0x39424E),x,0.14,z));
+  return ch;}
+function makeCafeRoom(){const g=roomShell(3.0,2.5,1.5,0xF6E9CE,0x8FBFA5,0);
+  // counter + coffee machine + chef zone (like the screenshot kitchen)
+  g.add(at(box(1.5,0.55,0.4,0xC98A4B),-0.6,0.48,-0.85));
+  g.add(at(box(1.55,0.08,0.45,0xE0A85C),-0.6,0.8,-0.85));
+  g.add(at(box(0.3,0.35,0.25,0x8A8F92),-1.0,1.0,-0.9));            // coffee machine
+  g.add(at(box(0.25,0.22,0.2,0xE0453F),-0.35,0.95,-0.88));         // kettle
+  // dining: 2 tables + chairs
+  for(const tx of[0.55,-0.35]){
+    g.add(at(cyl(0.06,0.5,0x8A8078),tx,0.35,0.45));
+    g.add(at(cyl(0.32,0.05,0xF0E6D2),tx,0.62,0.45));
+    g.add(at(sph(0.09,0xF25C6E),tx,0.72,0.45));
+    const c1=cafeChair(0xD5453C);c1.position.set(tx,0.1,0.95);g.add(c1);
+    const c2=cafeChair(0xD5453C);c2.position.set(tx,0.1,-0.05);c2.rotation.y=Math.PI;g.add(c2);
+  }
+  const art=wallArt(0xFFCF6B);art.position.set(0.9,1.2,-1.15);g.add(art);
+  for(let i=0;i<7;i++)g.add(at(box(0.36,0.5,0.15,i%2?0xE0653F:0xF6E9CE),-1.2+i*0.4,1.85,0.9)); // awning band
+  const rf=mk(GEO.cone4,0xC0563F);rf.scale.set(2.4,0.9,2.4);rf.rotation.y=Math.PI/4;rf.position.y=2.25;g.add(rf);
+  return g;}
+Object.assign(BUILDERS,{cabin:makeCabinRoom,cottage:makeCottageRoom,hotel:makeHotelRooms,cafe:makeCafeRoom});
+
+/* ==================== buyable furniture ==================== */
+function makeSofa(){const s=grp();
+  s.add(at(box(0.9,0.3,0.42,0xD5453C),0,0.32,0));
+  s.add(at(box(0.9,0.36,0.12,0xD5453C),0,0.55,-0.18));
+  s.add(at(box(0.14,0.4,0.42,0xB03A32),-0.44,0.42,0));
+  s.add(at(box(0.14,0.4,0.42,0xB03A32),0.44,0.42,0));
+  s.add(at(box(0.34,0.1,0.3,0xFFCF6B),-0.2,0.5,0.03));             // cushion
+  s.add(at(box(0.8,0.16,0.36,0x9A6B42),0,0.1,0));
+  return s;}
+function makePlantF(){const p=grp();
+  p.add(at(cyl(0.18,0.26,0xB0623C),0,0.14,0));
+  p.add(at(cyl(0.04,0.4,0x2F8A4C),0,0.45,0));
+  p.add(at(sph(0.24,0x3AA55C),0,0.72,0));
+  p.add(at(sph(0.16,0x2F8A4C),0.16,0.6,0.08));
+  return p;}
+function makeLampF(){const l=grp();
+  l.add(at(cyl(0.14,0.05,0x39424E),0,0.03,0));
+  l.add(at(cyl(0.03,0.85,0x39424E),0,0.45,0));
+  const sh=cone(0.2,0.24,0xFFD98A);sh.material=BMAT(0xFFD98A);sh.position.y=0.95;l.add(sh);
+  return l;}
+function makeTVF(){const t=grp();
+  t.add(at(box(0.5,0.32,0.06,0x1E242C),0,0.62,0));
+  t.add(at(box(0.42,0.24,0.02,0x59C6E8),0,0.62,0.035));
+  t.add(at(box(0.12,0.3,0.12,0x39424E),0,0.3,0));
+  t.add(at(box(0.6,0.08,0.3,0x9A6B42),0,0.12,0));
+  return t;}
+function makeShelfF(){const s=grp();
+  s.add(at(box(0.6,1.0,0.22,0x8A5E3A),0,0.6,0));
+  for(let r=0;r<3;r++)for(let i=0;i<3;i++)
+    s.add(at(box(0.12,0.2,0.16,[0xE0653F,0x3E7CC0,0xFFCF6B,0x8AD98F][((r*3+i)%4)]),-0.18+i*0.18,0.32+r*0.28,0.03));
+  return s;}
+function makeHotTubF(){const h=grp();
+  h.add(at(cyl(0.42,0.35,0x9A6B42,true),0,0.2,0));
+  h.add(at(cyl(0.35,0.08,0x8FD6C4),0,0.4,0));
+  const st=sph(0.1,0xFFFFFF);st.material=BMAT(0xFFFFFF,{transparent:true,opacity:0.35});
+  st.position.y=0.65;h.add(st);
+  return h;}
+const FURN_BUILDERS={sofa:makeSofa,plant:makePlantF,lamp:makeLampF,tv:makeTVF,shelf:makeShelfF,tub:makeHotTubF};
+
 /* == 2B == */
 "use strict";
 /* ==================== biomes ==================== */
@@ -1032,7 +1179,7 @@ const ANIMALS={
 const CREW={
   lumberjack:{ic:"🪓",name:"Harvest Crew",desc:"Roams the wilds gathering resources for you.",c:100,g:1.4,max:10},
   merchant:  {ic:"🛒",name:"Market Trader",desc:"Works the stall — auto-sells 4/s each.",c:250,g:1.45,max:6},
-  keeper:    {ic:"🧹",name:"Housekeeper",desc:"Keeps guests happy: +12% building income each.",c:1500,g:1.7,max:5},
+  keeper:    {ic:"🧹",name:"Housekeeper",desc:"+12% income each, and every hire serves 6 more guests — understaffing makes guests angry (and inspectors expensive).",c:1500,g:1.7,max:5},
   ranch:     {ic:"🧑‍🌾",name:"Ranch Hand",desc:"Auto-collects eggs, wool and milk.",c:1200,g:1.8,max:3},
   dog:       {ic:"🐕",name:"Resort Pup",desc:"Loyal companion — follows you around and digs up buried coins.",c:500,g:1,max:1},
 };
@@ -1053,6 +1200,15 @@ const UPGRADES=[
   {id:"inc3",ic:"🎆",name:"World Famous",desc:"All building income ×3.",c:2e6,t:"inc",m:3},
   {id:"inc4",ic:"👑",name:"Royal Visit",desc:"All building income ×3.",c:1.5e7,t:"inc",m:3},
 ];
+const FURN={
+  sofa: {ic:"🛋️",name:"Sofa",c:200,w:25},
+  plant:{ic:"🪴",name:"Plant",c:120,w:8},
+  lamp: {ic:"💡",name:"Lamp",c:180,w:12},
+  tv:   {ic:"📺",name:"TV",c:450,w:20},
+  shelf:{ic:"📚",name:"Bookshelf",c:350,w:40},
+  tub:  {ic:"🛁",name:"Hot Tub",c:900,w:60},
+};
+const SLOTS=[[0.62,0.78],[-0.62,0.78],[0.9,0.2],[-0.9,0.2],[0.35,1.0],[-0.35,1.0],[0,1.12]];
 const STAR_T=[0,10,30,80,200,430];
 const REPNAMES=["humble camp","cozy retreat","charming inn","fine resort","luxury escape","★ LEGEND ★"];
 
@@ -1091,11 +1247,18 @@ const axePower=()=>1*upM("axe");
 const woodPrice=()=>1*upM("price")*deedM();
 const crewM=()=>upM("crew");
 const gardens=()=>S.b.filter(b=>DEFS[b.t].line==="garden").length;
-const starPts=()=>S.b.reduce((s,b)=>s+(DEFS[b.t].star||0),0);
+const starPts=()=>S.b.reduce((s,b)=>s+(DEFS[b.t].star||0)+((b.f&&b.f.length)||0),0);
 function stars(){let s=0;for(let i=1;i<STAR_T.length;i++)if(starPts()>=STAR_T[i])s=i;return s;}
-const beds=()=>S.b.reduce((s,b)=>s+(DEFS[b.t].beds||0),0);
+const beds=()=>S.b.reduce((s,b)=>s+(DEFS[b.t].beds?DEFS[b.t].beds+(b.lvl||0):0),0);
+function bMult(rec){return (1+((rec.f&&rec.f.length)||0)*0.08)*(1+(rec.lvl||0)*0.4);}
+function staffCap(){return 4+S.crew.keeper*6;}
+function happiness(){
+  const gs=npcs.filter(n=>n.kind==="guest").length;
+  const r=gs/staffCap();
+  return clamp(1-Math.max(0,r-1)*0.55,0.4,1);
+}
 function incomeMult(){return (1+gardens()*0.02)*upM("inc")*(1+S.crew.keeper*0.12)*(1+stars()*0.25)*deedM();}
-function passiveIncome(){return S.b.reduce((s,b)=>s+DEFS[b.t].inc,0)*incomeMult();}
+function passiveIncome(){return S.b.reduce((s,b)=>s+DEFS[b.t].inc*bMult(b),0)*incomeMult();}
 function bCount(t){return S.b.filter(b=>b.t===t).length;}
 function bCost(t){const d=DEFS[t],n=bCount(t);
   return {c:Math.round(d.c*Math.pow(1.30,n)),w:Math.round(d.w*Math.pow(1.18,n))};}
@@ -1119,6 +1282,7 @@ function tone(f,dur,type,vol,delay,slide){const a=ac();if(!a)return;
   g.gain.exponentialRampToValueAtTime(0.001,t0+dur);
   o.connect(g);g.connect(a.destination);o.start(t0);o.stop(t0+dur+0.02);}catch(e){}}
 const SFX={
+  fine:()=>{tone(220,0.3,"sawtooth",0.1,0,110);tone(180,0.32,"sawtooth",0.09,0.2,90);},
   chop:()=>tone(150,0.07,"square",0.09,0,85),
   coin:()=>{tone(880,0.09,"sine",0.11);tone(1318,0.12,"sine",0.09,0.07);},
   build:()=>{[523,659,784].forEach((f,i)=>tone(f,0.14,"triangle",0.12,i*0.08));},
@@ -1233,7 +1397,7 @@ function collides(x,z,r,ignore){
   if(Math.hypot(x-DOCK.x,z-DOCK.z)<3+r)return true;
   if(Math.hypot(x,z)>WORLD_R-2)return true;
   for(const b of built){if(b===ignore)continue;
-    if(Math.hypot(x-b.rec.x,z-b.rec.z)<b.def.r+r+0.7)return true;}
+    if(Math.hypot(x-b.rec.x,z-b.rec.z)<b.def.r+r+0.35)return true;}
   return false;
 }
 function clearTreesAt(x,z,r){
@@ -1243,7 +1407,7 @@ function clearTreesAt(x,z,r){
 }
 function findSpot(r){
   for(let ring=0;ring<26;ring++){
-    const rad=4+ring*3.4;const steps=Math.max(6,ring*5);
+    const rad=4+ring*2.7;const steps=Math.max(6,ring*6);
     const off=rand(0,6.283);
     for(let i=0;i<steps;i++){const a=off+i/steps*6.283;
       const x=Math.cos(a)*rad,z=Math.sin(a)*rad*0.92+4;
@@ -1261,6 +1425,8 @@ function spawnBuilding(rec,isNew){
   g.userData.inst=inst;
   built.push(inst);
   clearTreesAt(rec.x,rec.z,def.r);
+  if(rec.lvl)g.scale.multiplyScalar(1+0.12*rec.lvl);
+  (rec.f||[]).forEach((fid,i)=>addFurnMesh(inst,fid,i));
   if(isNew){g.userData.baseScale=g.scale.x;g.scale.setScalar(0.01);inst.popT=0;}
   else g.userData.baseScale=g.scale.x;
   return inst;
@@ -1437,7 +1603,7 @@ function guestTick(n,dt){
   if(n.state==="arrive"){
     if(walkerStep(n,dt,sp)){
       if(n.home){
-        const fee=Math.max(2,n.home.def.inc*6)*incomeMult()*0.5*(n.vip?12:1);
+        const fee=Math.max(2,n.home.def.inc*6*bMult(n.home.rec))*incomeMult()*0.5*happiness()*(n.vip?12:1);
         earn(fee);S.fees+=fee;S.q.guests++;
         float3D((n.vip?"👑 ":"")+"+🪙"+fmt(fee),n.home.rec.x,3,n.home.rec.z,n.vip?"#FFD86B":"#FFCF6B");
         if(n.vip){toast("👑 A VIP checked in — huge tip!");SFX.vip();confettiAt(n.home.rec.x,n.home.rec.z);}
@@ -1453,6 +1619,10 @@ function guestTick(n,dt){
     if(walkerStep(n,dt,sp*0.85)){n.state="pause";n.wait=rand(1.5,4);}
   }else if(n.state==="pause"){
     animChar(n.g,0,dt);n.wait-=dt;
+    if(happiness()<0.7&&Math.random()<dt*0.25){
+      n.state="leave";n.tx=GATE.x+rand(-1,1);n.tz=GATE.z+1;
+      float3D("💢",n.g.position.x,2.2,n.g.position.z,"#FF6B6B");
+      return;}
     if(n.wait<=0){n.legs--;
       if(n.legs<=0){n.state="leave";n.tx=GATE.x+rand(-1,1);n.tz=GATE.z+1;}
       else pickGuestSpot(n);}
@@ -1574,7 +1744,7 @@ const pstate={speed:5.6,acting:false,actT:0,fishT:0,mode:null};
 
 let camYaw=0.4,camPitch=0.42,camDist=13;
 function updateCamera(dt){
-  camPitch=clamp(camPitch,0.12,1.15);camDist=clamp(camDist,7,26);
+  camPitch=clamp(camPitch,0.12,1.15);camDist=clamp(camDist,7,34);
   const cx=player.position.x+Math.sin(camYaw)*Math.cos(camPitch)*camDist;
   const cz=player.position.z+Math.cos(camYaw)*Math.cos(camPitch)*camDist;
   const cy=1.6+Math.sin(camPitch)*camDist;
@@ -1772,7 +1942,7 @@ canvas.addEventListener("pointermove",e=>{
   if(pinch&&camPt!==null){
     const a=activePts[camPt],b=activePts[pinch.id2];
     if(a&&b){const d=Math.hypot(a.x-b.x,a.y-b.y);
-      if(pinch.d)camDist=clamp(camDist*(pinch.d/d),7,26);
+      if(pinch.d)camDist=clamp(camDist*(pinch.d/d),7,34);
       pinch.d=d;}
     return;
   }
@@ -1792,13 +1962,56 @@ function canvasUp(e){
 }
 canvas.addEventListener("pointerup",canvasUp);
 canvas.addEventListener("pointercancel",canvasUp);
-canvas.addEventListener("wheel",e=>{camDist=clamp(camDist+e.deltaY*0.012,7,26);e.preventDefault();},{passive:false});
+canvas.addEventListener("wheel",e=>{camDist=clamp(camDist+e.deltaY*0.012,7,34);e.preventDefault();},{passive:false});
 const actBtn=$("actionBtn");
 actBtn.addEventListener("pointerdown",e=>{pstate.acting=true;tapAction();e.preventDefault();});
 function actEnd(){pstate.acting=false;pstate.actT=0;pstate.fishT=0;pstate.mode=null;}
 actBtn.addEventListener("pointerup",actEnd);actBtn.addEventListener("pointercancel",actEnd);
-$("zoomIn").onclick=()=>camDist=clamp(camDist-2.5,7,26);
-$("zoomOut").onclick=()=>camDist=clamp(camDist+2.5,7,26);
+$("zoomIn").onclick=()=>camDist=clamp(camDist-2.5,7,34);
+$("zoomOut").onclick=()=>camDist=clamp(camDist+2.5,7,34);
+
+/* ==================== furnish & expand ==================== */
+function furnSlots(inst){return 3+inst.def.tier+(inst.rec.lvl||0);}
+function addFurnMesh(inst,fid,idx){
+  const B=FURN_BUILDERS[fid];if(!B)return;
+  const m=B();
+  const rr=inst.def.r/TIER_SCALE[inst.def.tier];
+  const sl=SLOTS[idx%SLOTS.length];
+  m.position.set(sl[0]*rr,0.02,sl[1]*rr);
+  m.rotation.y=(sl[0]<0?0.6:-0.6)+rand(-0.25,0.25);
+  inst.g.add(m);
+}
+function furnCost(inst,fid){const m=Math.pow(4,inst.def.tier);
+  return {c:Math.round(FURN[fid].c*m),w:Math.round(FURN[fid].w*m)};}
+function buyFurniture(inst,fid){
+  const rec=inst.rec;rec.f=rec.f||[];
+  if(rec.f.length>=furnSlots(inst)){toast("No space left — 📐 Expand this building for more slots!");return;}
+  const cc=furnCost(inst,fid);
+  if(S.coins<cc.c||S.wood<cc.w)return;
+  S.coins-=cc.c;S.wood-=cc.w;
+  rec.f.push(fid);
+  addFurnMesh(inst,fid,rec.f.length-1);
+  SFX.build();confettiAt(rec.x,rec.z);
+  toast(FURN[fid].ic+" "+FURN[fid].name+" added — +8% income & +1⭐pt for this building!");
+  updateHUD(true);refreshFurnRow();
+}
+function expandCost(inst){const lvl=inst.rec.lvl||0;
+  if(lvl>=3)return null;
+  return {c:Math.round(inst.def.c*0.7*(lvl+1)),w:Math.round(inst.def.w*0.5*(lvl+1))};}
+function doExpand(inst){
+  const cc=expandCost(inst);if(!cc)return;
+  if(S.coins<cc.c||S.wood<cc.w)return;
+  S.coins-=cc.c;S.wood-=cc.w;
+  inst.rec.lvl=(inst.rec.lvl||0)+1;
+  const rec=inst.rec;
+  const bi=built.indexOf(inst);if(bi>=0)built.splice(bi,1);
+  scene.remove(inst.g);
+  const ni=spawnBuilding(rec,false);
+  SFX.build();confettiAt(rec.x,rec.z);
+  toast("📐 Expanded! +40% income"+(inst.def.beds?", +1 bed":"")+", +1 furniture slot");
+  updateHUD(true);
+  return ni;
+}
 
 /* ==================== move mode ==================== */
 let moveMode=false,moveSel=null;
@@ -1810,13 +2023,47 @@ function setMoveMode(on){
   moveMode=on;moveSel=null;selRing.visible=false;
   $("movebar").classList.toggle("hidden",!on);
   $("moveSell").classList.add("hidden");
-  $("moveMsg").textContent="Tap a building, then tap a spot to move it.";
+  $("moveFurnish").classList.add("hidden");
+  $("moveExpand").classList.add("hidden");
+  $("furnRow").classList.add("hidden");
+  $("moveMsg").textContent="Tap a building to furnish 🛋️, expand 📐, move or sell it.";
   closeSheet();
 }
+function updateExpandBtn(){
+  if(!moveSel)return;
+  const cc=expandCost(moveSel);
+  const btn=$("moveExpand");
+  if(!cc){btn.textContent="📐 Max size";btn.disabled=true;}
+  else{btn.textContent="📐 Expand 🪙"+fmt(cc.c)+" "+BIOME.res.ic+fmt(cc.w);
+    btn.disabled=S.coins<cc.c||S.wood<cc.w;}
+}
+function refreshFurnRow(){
+  const row=$("furnRow");
+  if(!moveSel||row.classList.contains("hidden"))return;
+  row.innerHTML="";
+  const used=((moveSel.rec.f)||[]).length,cap=furnSlots(moveSel);
+  const head=document.createElement("span");
+  head.style.cssText="color:var(--cream);font-weight:800;font-size:.72rem;align-self:center;padding:0 4px;white-space:nowrap";
+  head.textContent=`🛋️ ${used}/${cap}`;
+  row.appendChild(head);
+  for(const k in FURN){
+    const cc=furnCost(moveSel,k);
+    const btn=document.createElement("button");
+    btn.innerHTML=`<span class="fi">${FURN[k].ic}</span><span>${FURN[k].name}</span><span>🪙${fmt(cc.c)} ${BIOME.res.ic}${fmt(cc.w)}</span>`;
+    btn.disabled=S.coins<cc.c||S.wood<cc.w||used>=cap;
+    btn.onclick=()=>buyFurniture(moveSel,k);
+    row.appendChild(btn);
+  }
+}
+$("moveFurnish").onclick=()=>{$("furnRow").classList.toggle("hidden");refreshFurnRow();};
+$("moveExpand").onclick=()=>{if(moveSel){const ni=doExpand(moveSel);if(ni){moveSel=ni;updateExpandBtn();refreshFurnRow();}}};
 $("moveDone").onclick=()=>setMoveMode(false);
 $("moveSell").onclick=()=>{if(moveSel){sellBuilding(moveSel);moveSel=null;selRing.visible=false;
   $("moveSell").classList.add("hidden");
-  $("moveMsg").textContent="Tap a building, then tap a spot to move it.";}};
+  $("moveFurnish").classList.add("hidden");
+  $("moveExpand").classList.add("hidden");
+  $("furnRow").classList.add("hidden");
+  $("moveMsg").textContent="Tap a building to furnish 🛋️, expand 📐, move or sell it.";}};
 function handleTap(x,y){
   ndc.set(x/innerWidth*2-1,-(y/innerHeight)*2+1);
   ray.setFromCamera(ndc,camera);
@@ -1829,7 +2076,13 @@ function handleTap(x,y){
         selRing.scale.setScalar(moveSel.def.r+0.8);
         selRing.position.set(moveSel.rec.x,0.05,moveSel.rec.z);selRing.visible=true;
         $("moveSell").classList.remove("hidden");
-        $("moveMsg").textContent=moveSel.def.ic+" "+moveSel.def.name+" — tap the ground to move it, or sell for 50%.";
+        $("moveFurnish").classList.remove("hidden");
+        $("moveExpand").classList.remove("hidden");
+        updateExpandBtn();
+        $("furnRow").classList.add("hidden");
+        $("moveMsg").textContent=moveSel.def.ic+" "+moveSel.def.name+
+          ((moveSel.rec.f&&moveSel.rec.f.length)?" · "+moveSel.rec.f.length+"🛋️":"")+
+          ((moveSel.rec.lvl)?" · lvl "+(moveSel.rec.lvl+1):"");
         return;}}
     if(moveSel){
       const gHit=ray.intersectObject(ground,false)[0];
@@ -2108,6 +2361,9 @@ function updateHUD(force){
   $("hCoinS").textContent="+"+fmt(passiveIncome())+"/s";
   $("hWoodS").textContent=(S.hold?"🔒 ":"")+"+"+fmt(S.crew.lumberjack*axePower()*0.6*Math.min(crewM(),4)/0.9)+"/s";
   $("hGuest").textContent=npcs.filter(n=>n.kind==="guest").length;
+  const hp=happiness();
+  $("hHap").textContent=Math.round(hp*100)+"%";
+  $("hHapIc").textContent=hp>=0.9?"😊":hp>=0.75?"🙂":hp>=0.6?"😐":"😠";
   const st=stars();
   $("starRow").textContent="★".repeat(st)+"☆".repeat(5-st);
   $("hRep").textContent=REPNAMES[st];
@@ -2181,6 +2437,31 @@ function applyOffline(){
   $("offTxt").textContent=`You were away ${fmtTime(away)}. The crew kept ${BIOME.name} humming.`;
   $("offHaul").textContent=`+🪙${fmt(coins)}`+(wood>=1?`  +${BIOME.res.ic}${fmt(wood)}`:"");
   $("offModal").classList.add("show");
+}
+
+/* ==================== inspections ==================== */
+let inspT=180,moodWarnT=0;
+function runInspection(){
+  const h=happiness();
+  if(h<0.8){
+    const fine=Math.max(50,passiveIncome()*40);
+    S.coins=Math.max(0,S.coins-fine);
+    toast("🧾 INSPECTION FAILED — fined 🪙"+fmt(fine)+"! Guests reported slow service. Hire more Housekeepers!");
+    float3D("🧾 -🪙"+fmt(fine),player.position.x,2.6,player.position.z,"#FF6B6B");
+    SFX.fine();
+  }else if(Math.random()<0.25){
+    const reasons=["a raccoon in the kitchen","a leaky pipe","a wobbly dock plank","an unlatched sheep gate","untrimmed hedges"];
+    const fine=Math.max(30,passiveIncome()*12);
+    S.coins=Math.max(0,S.coins-fine);
+    toast("🧾 Surprise inspection: fined 🪙"+fmt(fine)+" for "+reasons[Math.random()*reasons.length|0]+"!");
+    float3D("🧾 -🪙"+fmt(fine),player.position.x,2.6,player.position.z,"#FF6B6B");
+    SFX.fine();
+  }else{
+    const bonus=Math.max(20,passiveIncome()*10);
+    earn(bonus);
+    toast("🧾 Inspection passed with flying colors! Reputation bonus +🪙"+fmt(bonus));
+    SFX.coin();
+  }
 }
 
 /* ==================== guest spawn ==================== */
@@ -2295,6 +2576,11 @@ function frame(t){
   guestSpawnTick(dt);
   chestT-=dt;
   if(chestT<=0){chestT=rand(75,140);if(chests.length<2)spawnChest();}
+  inspT-=dt;
+  if(inspT<=0){inspT=rand(210,360);if(S.b.length>=2)runInspection();}
+  if(happiness()<0.75){moodWarnT-=dt;
+    if(moodWarnT<=0){moodWarnT=45;toast("😠 Guests are grumbling — hire more Housekeepers to keep up!");}}
+  else moodWarnT=0;
   birdT-=dt;
   if(birdT<=0){birdT=rand(90,170);if(!bird)spawnBird();}
   birdTick(dt,t);
